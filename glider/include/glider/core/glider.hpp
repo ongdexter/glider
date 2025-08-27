@@ -40,6 +40,7 @@ class Glider
         double initial_heading_;
         double current_heading_;
         bool set_initial_heading_;
+        bool correct_imu_;
         std::string frame_;
 
         Eigen::Matrix3d ned_to_enu_rot_;

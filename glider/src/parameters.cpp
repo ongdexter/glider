@@ -29,6 +29,7 @@ Glider::Parameters::Parameters(const std::string& path)
         odom_orientation_noise = config["odom_orientation_noise"].as<double>();
         odom_translation_noise = config["odom_translation_noise"].as<double>();
         odom_scale_noise = config["odom_scale_noise"].as<double>();
+        correct_imu = config["correct_imu"].as<bool>();
 
         bias_num_measurements = config["bias_num_measurements"].as<int>();
 

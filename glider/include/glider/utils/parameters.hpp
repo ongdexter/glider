@@ -38,5 +38,6 @@ struct Parameters
     std::string frame;
 
     bool scale_odom;
+    bool correct_imu;
 };
 }

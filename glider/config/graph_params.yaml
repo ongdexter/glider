@@ -16,3 +16,4 @@ odom_scale_noise: 50.0
 lag_time: 10.0
 imu_frame: "enu"
 scale_odom: true
+correct_imu: false

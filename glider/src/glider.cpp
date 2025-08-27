@@ -19,6 +19,7 @@ Glider::Glider(const std::string& path)
     origin_x_ = params.origin_x;
     origin_y_ = params.origin_y;
     frame_ = params.frame;
+    correct_imu_ = params.correct_imu;
 
     // IMU transformations
     ned_to_enu_rot_ << 0.0, 1.0, 0.0, 
@@ -33,6 +34,7 @@ Glider::Glider(const std::string& path)
     set_initial_heading_ = true;
 
     std::cout << "[GLIDER] Using IMU frame: " << frame_ << std::endl;
+    std::cout << "[GLIDER] Correcting IMU heading with mag: " << std::boolalpha << correct_imu_ << std::endl;
     std::cout << "[GLIDER] Glider initialized" << std::endl;
 }
 
@@ -91,17 +93,31 @@ void Glider::addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
         Eigen::Vector4d vec_enu;
         vec_enu << quat_enu.w(), quat_enu.x(), quat_enu.y(), quat_enu.z();
 
-        Eigen::Vector4d quat_corr = correctImuOrientation(vec_enu);
-
         Eigen::Vector3d accel_enu = ned_to_enu_rot_ * accel;
         Eigen::Vector3d gyro_enu = ned_to_enu_rot_ * gyro;
 
-        factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, quat_corr);
+        if (correct_imu_)
+        {
+            Eigen::Vector4d quat_corr = correctImuOrientation(vec_enu);
+            factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, quat_corr);
+        }
+        else
+        {
+            factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, vec_enu);
+        }
+
     }
     else if (frame_ == "enu")
     {
-        Eigen::Vector4d quat_corr = correctImuOrientation(quat);
-        factor_manager_.addImuFactor(timestamp, accel, gyro, quat_corr);
+        if (correct_imu_)
+        {
+            Eigen::Vector4d quat_corr = correctImuOrientation(quat);
+            factor_manager_.addImuFactor(timestamp, accel, gyro, quat_corr);
+        }
+        else
+        {
+            factor_manager_.addImuFactor(timestamp, accel, gyro, quat);
+        }
     }
     else
     {

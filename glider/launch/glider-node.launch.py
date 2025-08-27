@@ -16,7 +16,7 @@ def generate_launch_description():
     
     use_odom_arg = DeclareLaunchArgument(
         'use_odom',
-        default_value='true',
+        default_value='false',
         description='Use odometry'
     )
     
@@ -53,9 +53,9 @@ def generate_launch_description():
              'use_odom': use_odom}
         ],
         remappings=[
-            ('/gps', '/ublox/fix'),
-            ('/imu', '/VN100T/imu'),
-            ('/mag', '/VN100T/mag'),
+            ('/gps', '/ublox_gps_node/fix'),
+            ('/imu', '/zed/zed_node/imu/data'),
+            ('/mag', '/zed/zed_node/imu/mag'),
             ('/odom', '/Odometry'),
         ]
     )
