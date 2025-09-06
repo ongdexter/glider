@@ -275,7 +275,7 @@ Odometry FactorManager::predict(int64_t timestamp)
     }
     gtsam::NavState result = pim_copy_->predict(current_state_.getNavState(), bias_);
 
-    Odometry ret(result, gyro_);
+    Odometry ret(result, gyro_, timestamp);
 
     return ret; 
 }
