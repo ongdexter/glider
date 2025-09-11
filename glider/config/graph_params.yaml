@@ -1,5 +1,5 @@
-accelerometer_covariance: 0.1
-gyroscope_covariance: 0.1
+accelerometer_covariance: 0.0001
+gyroscope_covariance: 0.0001
 integration_covariance: 0.001
 bias_covariance: 0.001
 use_second_order: 0.0
@@ -16,4 +16,4 @@ odom_scale_noise: 50.0
 lag_time: 10.0
 imu_frame: "enu"
 scale_odom: true
-correct_imu: false
+correct_imu: true

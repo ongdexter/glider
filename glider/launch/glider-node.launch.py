@@ -53,9 +53,9 @@ def generate_launch_description():
              'use_odom': use_odom}
         ],
         remappings=[
-            ('/gps', '/ublox_gps_node/fix'),
-            ('/imu', '/zed/zed_node/imu/data'),
-            ('/mag', '/zed/zed_node/imu/mag'),
+            ('/gps', '/ublox/fix'),
+            ('/imu', '/VN100T/imu'),
+            ('/mag', '/VN100T/mag'),
             ('/odom', '/Odometry'),
         ]
     )
