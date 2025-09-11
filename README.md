@@ -8,7 +8,7 @@ You can build this as a ros2 package with colcon: `colcon build --packages-selec
 Glider can be built as a ros packages in your ros workspace with `catkin build`.
 Run glider with:
 ```
-ros2 launch glider glider-node.launch
+ros2 launch glider glider-node.launch.py
 ```
 
 Everything will be rotated into the ENU frame, includeing the IMU orientation and the Odometry pose. Since GPS is the main prior, we publish state estimates in the ENU frame with UTM coordinates as an `Odometry` ros message or a `NavSatFix` message. This can be configured in `config/ros_params.yaml` with the `publish_nav_sat_fix` parameter.
