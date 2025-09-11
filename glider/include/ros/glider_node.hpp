@@ -58,6 +58,7 @@ class GliderNode : public rclcpp::Node
         
         // publishers 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_viz_pub_;
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gps_pub_;
 
         // timers
@@ -67,8 +68,11 @@ class GliderNode : public rclcpp::Node
         bool initialized_;
         bool use_sim_time_;
         bool publish_nsf_;
+        bool viz_;
         std::string utm_zone_;
         double declination_;
+        double origin_easting_;
+        double origin_northing_;
 
         // tracker
         Glider::State current_state_;

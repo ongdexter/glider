@@ -19,8 +19,6 @@ Glider::Parameters::Parameters(const std::string& path)
         integration_cov = config["integration_covariance"].as<double>();
         bias_cov = config["bias_covariance"].as<double>();
         use_second_order = config["use_second_order"].as<double>();
-        origin_x = config["origin_x"].as<double>();
-        origin_y = config["origin_y"].as<double>();
         gravity = config["gravity"].as<double>();
         gps_noise = config["gps_noise"].as<double>();
         heading_noise = config["heading_noise"].as<double>();
@@ -35,6 +33,9 @@ Glider::Parameters::Parameters(const std::string& path)
 
         frame = config["imu_frame"].as<std::string>();
         scale_odom = config["scale_odom"].as<bool>();
+        t_imu_gps(0) = config["gps_to_imu"]["x"].as<double>();
+        t_imu_gps(1) = config["gps_to_imu"]["y"].as<double>();
+        t_imu_gps(2) = config["gps_to_imu"]["z"].as<double>();
     }
     catch (const YAML::Exception& e)
     {

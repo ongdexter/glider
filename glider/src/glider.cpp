@@ -16,10 +16,9 @@ Glider::Glider(const std::string& path)
     Parameters params = Parameters::Load(path);
     factor_manager_ = FactorManager(params);
 
-    origin_x_ = params.origin_x;
-    origin_y_ = params.origin_y;
     frame_ = params.frame;
     correct_imu_ = params.correct_imu;
+    t_imu_gps_ = params.t_imu_gps;
 
     // IMU transformations
     ned_to_enu_rot_ << 0.0, 1.0, 0.0, 
@@ -74,11 +73,10 @@ void Glider::addGPS(int64_t timestamp, Eigen::Vector3d& gps)
     char zone[4];
     geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
     
-    easting = easting - origin_x_;
-    northing = northing - origin_y_;
-    
     meas.head(2) << easting, northing;
     meas(2) = gps(2);
+
+    meas = meas + t_imu_gps_;
 
     factor_manager_.addGpsFactor(timestamp, meas);
 }
@@ -88,24 +86,25 @@ void Glider::addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     if (frame_ == "ned")
     {
         // transfrom to enu
-        Eigen::Quaterniond quat_ned(quat(0), quat(1), quat(2), quat(3));
-        Eigen::Quaterniond quat_enu = ned_to_enu_quat_ * quat_ned;
-        Eigen::Vector4d vec_enu;
-        vec_enu << quat_enu.w(), quat_enu.x(), quat_enu.y(), quat_enu.z();
+        Eigen::Quaterniond eig_quat(quat(0), quat(1), quat(2), quat(3));
+        Eigen::Matrix3d imu_rot = eig_quat.toRotationMatrix();
+        // Vectornav gives BODY wrt NED, we need NED wrt BODY --> so take the inverse 
+        Eigen::Matrix3d imu_enu = ned_to_enu_rot_ * imu_rot.inverse();
+        Eigen::Quaterniond imu_quat(imu_enu);
+        Eigen::Vector4d imu_vec(imu_quat.w(), imu_quat.x(), imu_quat.y(), imu_quat.z());
 
         Eigen::Vector3d accel_enu = ned_to_enu_rot_ * accel;
         Eigen::Vector3d gyro_enu = ned_to_enu_rot_ * gyro;
-
+        
         if (correct_imu_)
         {
-            Eigen::Vector4d quat_corr = correctImuOrientation(vec_enu);
+            Eigen::Vector4d quat_corr = correctImuOrientation(imu_vec);
             factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, quat_corr);
         }
         else
         {
-            factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, vec_enu);
+            factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, imu_vec);
         }
-
     }
     else if (frame_ == "enu")
     {
@@ -113,7 +112,7 @@ void Glider::addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
         {
             Eigen::Vector4d quat_corr = correctImuOrientation(quat);
             factor_manager_.addImuFactor(timestamp, accel, gyro, quat_corr);
-        }
+        }       
         else
         {
             factor_manager_.addImuFactor(timestamp, accel, gyro, quat);
@@ -121,7 +120,7 @@ void Glider::addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     }
     else
     {
-        throw std::runtime_error("IMU Frame, not supported use ned or enu");
+        throw std::runtime_error("IMU Frame, not supported use ENU or NED");
         return;
     }
 }  
@@ -151,9 +150,9 @@ void Glider::addOdom(int64_t timestamp, Eigen::Isometry3d& pose)
         // Convert orb pose to ENU
         Eigen::Matrix3d odom_to_enu;
         double h = initial_heading_;
-        odom_to_enu << std::cos(h), -std::sin(h), 0.0d, 
-                      std::sin(h), std::cos(h), 0.0d, 
-                      0.0d, 0.0d, 1.0d;
+        odom_to_enu << std::cos(h), -std::sin(h), 0.0, 
+                      std::sin(h), std::cos(h), 0.0, 
+                      0.0, 0.0, 1.0;
         Eigen::Isometry3d enu_pose = pose.rotate(odom_to_enu);
         
         // calculate the relative pose in ENU frame

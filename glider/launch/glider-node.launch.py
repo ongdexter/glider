@@ -31,13 +31,13 @@ def generate_launch_description():
     ros_params_file = PathJoinSubstitution([
         glider_share,
         'config',
-        'ros_params.yaml'
+        'ros-params.yaml'
     ])
     
     graph_params_file = PathJoinSubstitution([
         glider_share,
         'config',
-        'graph_params.yaml'
+        'vectornav-vn100t.yaml'
     ])
      
     # Create the glider node
@@ -54,8 +54,8 @@ def generate_launch_description():
         ],
         remappings=[
             ('/gps', '/ublox_gps_node/fix'),
-            ('/imu', '/zed/zed_node/imu/data'),
-            ('/mag', '/zed/zed_node/imu/mag'),
+            ('/imu', '/vectornav/imu'),
+            ('/mag', '/vectornav/magnetic'),
             ('/odom', '/Odometry'),
         ]
     )
