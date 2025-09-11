@@ -18,6 +18,7 @@ Glider::Glider(const std::string& path)
 
     frame_ = params.frame;
     correct_imu_ = params.correct_imu;
+    t_imu_gps_ = params.t_imu_gps;
 
     // IMU transformations
     ned_to_enu_rot_ << 0.0, 1.0, 0.0, 
@@ -74,6 +75,8 @@ void Glider::addGPS(int64_t timestamp, Eigen::Vector3d& gps)
     
     meas.head(2) << easting, northing;
     meas(2) = gps(2);
+
+    meas = meas + t_imu_gps_;
 
     factor_manager_.addGpsFactor(timestamp, meas);
 }

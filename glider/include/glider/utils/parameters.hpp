@@ -5,6 +5,7 @@
 * glider-mono parameters loaded from a yaml file.
 */
 
+#include <Eigen/Dense>
 #include <yaml-cpp/yaml.h>
 #include <string>
 
@@ -37,5 +38,6 @@ struct Parameters
 
     bool scale_odom;
     bool correct_imu;
+    Eigen::Vector3d t_imu_gps;
 };
 }

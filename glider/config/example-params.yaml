@@ -4,14 +4,18 @@ integration_covariance: 0.001
 bias_covariance: 0.001
 use_second_order: 0.0
 gravity: 9.81
-bias_num_measurements: 100
+bias_num_measurements: 100 # number for imu measurements to use for imu bias calc
 gps_noise: 2.0
-odom_noise: 0.5
-heading_noise: 0.1
+odom_noise: 0.1 ## dep??
+heading_noise: 0.1 # dep??
 odom_orientation_noise: 0.1
 odom_translation_noise: 1.0
-odom_scale_noise: 50.0
-lag_time: 10.0
-imu_frame: "enu"
-scale_odom: true
-correct_imu: true
+odom_scale_noise: 1.0
+lag_time: 10.0 # amount of time for fixed lag smoother to look at
+imu_frame: "enu" # frame the imu outputs
+scale_odom: false # if you adding odom, does it need to be scaled?
+correct_imu: true # use mag to correct imu orienation
+gps_to_imu: # gps to imu extrinsics
+  X: 0.0
+  y: 0.0
+  z: 0.0

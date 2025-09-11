@@ -42,6 +42,7 @@ class Glider
         bool set_initial_heading_;
         bool correct_imu_;
         std::string frame_;
+        Eigen::Vector3d t_imu_gps_;
 
         Eigen::Matrix3d ned_to_enu_rot_;
         Eigen::Quaterniond ned_to_enu_quat_;
