@@ -224,7 +224,7 @@ Output Conversions::odomToRos(Glider::Odometry& odom, const char* zone)
         msg.twist.twist.linear.x = v(0);
         msg.twist.twist.linear.y = v(1);
         msg.twist.twist.linear.z = v(2);
-        msg.header = getHeader(odom.getTimestamp(), "enu-utm");
+        msg.header = getHeader(odom.getTimestamp(), "enu");
 
         return msg;
     }
@@ -303,7 +303,7 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
                 msg.twist.covariance[i * cov.rows() + j] = cov(i, j);
             }
         }
-        msg.header = getHeader(state.getTimestamp(), "enu-utm");
+        msg.header = getHeader(state.getTimestamp(), "enu");
 
     }
     else

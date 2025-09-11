@@ -16,6 +16,9 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     declare_parameter("publish_nav_sat_fix", false);
     declare_parameter("utm_zone", "18S");
     declare_parameter("declination", 12.0);
+    declare_parameter("origin_easting", 0.0);
+    declare_parameter("origin_northing", 0.0);
+    declare_parameter("viz", false);
 
     // Get parameters
     double freq = this->get_parameter("rate").as_double();
@@ -29,10 +32,18 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
 
     bool use_odom = this->get_parameter("use_odom").as_bool();
     RCLCPP_INFO_STREAM(this->get_logger(), "Fusing Odometry: " << std::boolalpha << use_odom);
+    
     publish_nsf_ = this->get_parameter("publish_nav_sat_fix").as_bool();
     utm_zone_ = this->get_parameter("utm_zone").as_string();
-    declination_ = this->get_parameter("declination").as_double() * M_PI / 180.0d;
+    RCLCPP_INFO_STREAM(this->get_logger(), "Using UTM Zone: " << utm_zone_); 
+
+    declination_ = this->get_parameter("declination").as_double() * M_PI / 180.0;
     RCLCPP_INFO_STREAM(this->get_logger(), "Using Magnetic Declination: " << declination_);
+    
+    viz_ = this->get_parameter("viz").as_bool();
+
+    origin_easting_ = this->get_parameter("origin_easting").as_double();
+    origin_northing_ = this->get_parameter("origin_northing").as_double();
 
     glider_ = std::make_unique<Glider::Glider>(path);
 
@@ -80,6 +91,12 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom", 10);
     }
 
+    if(viz_)
+    {
+        RCLCPP_INFO(this->get_logger(), "Publishing Odometry Viz message on /glider/odom/viz");
+        odom_viz_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom/viz", 10);
+    }
+
     std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
     timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
     RCLCPP_INFO(this->get_logger(), "GliderNode Initialized");
@@ -110,6 +127,17 @@ void GliderNode::interpolationCallback()
         nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(odom);
         GliderROS::Conversions::addCovariance<nav_msgs::msg::Odometry>(current_state_, msg);
         odom_pub_->publish(msg);
+
+        if (viz_)
+        {
+            nav_msgs::msg::Odometry viz_msg = msg;
+            double x = viz_msg.pose.pose.position.x - origin_easting_;
+            double y = viz_msg.pose.pose.position.y - origin_northing_;
+            viz_msg.pose.pose.position.x = x;
+            viz_msg.pose.pose.position.y = y;
+
+            odom_viz_pub_->publish(viz_msg);
+        }
     }
 }
 

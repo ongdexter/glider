@@ -1,13 +1,11 @@
-accelerometer_covariance: 0.0001
-gyroscope_covariance: 0.0001
+accelerometer_covariance: 0.00001
+gyroscope_covariance: 0.00001
 integration_covariance: 0.001
 bias_covariance: 0.001
 use_second_order: 0.0
-origin_x: 482990.7375634047
-origin_y: 4421250.443879729
 gravity: 9.81
 bias_num_measurements: 100
-gps_noise: 2.0
+gps_noise: 1.5
 odom_noise: 0.5
 heading_noise: 0.1
 odom_orientation_noise: 0.1

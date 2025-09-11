@@ -13,7 +13,7 @@ class MagnetometerHeadingNode(Node):
         # Create subscriber for magnetometer data
         self.subscription = self.create_subscription(
             MagneticField,
-            '/VN100T/mag',  # Change this to your magnetometer topic name
+            '/vectornav/magnetic',  # Change this to your magnetometer topic name
             self.magnetometer_callback,
             10
         )
@@ -47,12 +47,8 @@ class MagnetometerHeadingNode(Node):
         
         # Print the results
         self.get_logger().info(
-            f'Magnetic Field - X: {mag_x:.3f}, Y: {mag_y:.3f}, Z: {mag_z:.3f} µT'
-        )
-        self.get_logger().info(
             f'Heading: {heading_deg:.2f}° | Magnitude: {magnitude:.3f} µT'
         )
-        self.get_logger().info('---')
 
 
 def main(args=None):
