@@ -76,5 +76,7 @@ class GliderNode : public rclcpp::Node
 
         // tracker
         Glider::State current_state_;
+
+        int64_t latest_imu_timestamp_;
 };
 }

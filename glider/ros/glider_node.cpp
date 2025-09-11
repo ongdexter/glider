@@ -68,6 +68,8 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
 
     current_state_ = Glider::State::Uninitialized();
 
+    latest_imu_timestamp_ = 0;
+
     if (use_odom)
     {
         auto odom_sub_options = rclcpp::SubscriptionOptions();
@@ -111,7 +113,11 @@ void GliderNode::interpolationCallback()
 {
     if (!initialized_ || !current_state_.isInitialized()) return;
     
-    int64_t timestamp = getTime(this->now());
+    if (latest_imu_timestamp_ <= 0)
+    {
+        return;
+    }
+    int64_t timestamp = latest_imu_timestamp_;
     Glider::Odometry odom = glider_->interpolate(timestamp);
     
     if (!odom.isInitialized()) return;
@@ -149,6 +155,8 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
     int64_t timestamp = getTime(msg->header.stamp);
 
     glider_->addIMU(timestamp, accel, gyro, orient);
+
+    latest_imu_timestamp_ = timestamp;
 }
 
 void GliderNode::magCallback(const sensor_msgs::msg::MagneticField::ConstSharedPtr msg)
