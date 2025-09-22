@@ -8,3 +8,4 @@ glider_node:
     declination: 11.82
     origin_easting: 482933.2819920078
     origin_northing: 4421345.135559781
+    gps_init_count: 10

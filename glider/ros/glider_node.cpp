@@ -19,6 +19,7 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     declare_parameter("origin_easting", 0.0);
     declare_parameter("origin_northing", 0.0);
     declare_parameter("viz", false);
+    declare_parameter("gps_init_count", 10);
 
     // Get parameters
     double freq = this->get_parameter("rate").as_double();
@@ -44,6 +45,9 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
 
     origin_easting_ = this->get_parameter("origin_easting").as_double();
     origin_northing_ = this->get_parameter("origin_northing").as_double();
+
+    gps_init_count_ = this->get_parameter("gps_init_count").as_int();
+    gps_counter_ = 0;
 
     glider_ = std::make_unique<Glider::Glider>(path);
 
@@ -175,7 +179,10 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
     glider_->addGPS(timestamp, gps);
 
     current_state_ = glider_->optimize();
-    if (!initialized_) initialized_ = true;
+    if (gps_counter_++ > gps_init_count_)
+    {
+        if (!initialized_) initialized_ = true;
+    }
 }
 
 void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)

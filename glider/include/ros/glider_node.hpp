@@ -73,6 +73,8 @@ class GliderNode : public rclcpp::Node
         double declination_;
         double origin_easting_;
         double origin_northing_;
+        int gps_counter_;
+        int gps_init_count_;
 
         // tracker
         Glider::State current_state_;
