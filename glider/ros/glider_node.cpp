@@ -121,9 +121,17 @@ void GliderNode::interpolationCallback()
     {
         return;
     }
-    int64_t timestamp = latest_imu_timestamp_;
-    Glider::Odometry odom = glider_->interpolate(timestamp);
-    
+    int64_t timestamp = latest_imu_timestamp_;    
+    Glider::Odometry odom;
+    try {
+        odom = glider_->interpolate(timestamp);
+    } 
+    catch (const std::exception& e) 
+    {
+        RCLCPP_WARN(this->get_logger(), "Interpolation error: %s", e.what());
+        return;
+    }
+
     if (!odom.isInitialized()) return;
     if (publish_nsf_)
     {
@@ -178,7 +186,14 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
 
     glider_->addGPS(timestamp, gps);
 
-    current_state_ = glider_->optimize();
+    try {        
+        current_state_ = glider_->optimize();
+    }
+    catch (const std::exception& e) 
+    {
+        RCLCPP_WARN(this->get_logger(), "Optimization error: %s", e.what());
+        return;
+    }
     if (gps_counter_++ > gps_init_count_)
     {
         if (!initialized_) initialized_ = true;
