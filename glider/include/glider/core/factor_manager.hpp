@@ -24,7 +24,6 @@
 #include <gtsam/navigation/NavState.h>
 #include <gtsam/slam/InitializePose3.h>
 
-#include "imu_buffer.hpp"
 #include "state.hpp"
 #include "odometry.hpp"
 #include "glider/utils/parameters.hpp"
@@ -41,8 +40,6 @@
 using gtsam::symbol_shorthand::B; // Bias
 using gtsam::symbol_shorthand::V; // Velocity
 using gtsam::symbol_shorthand::X; // Pose
-using gtsam::symbol_shorthand::S; // scale
-using gtsam::symbol_shorthand::R; // Rotation
 
 // Helper function declarations
 Eigen::Vector3d vector3(double x, double y, double z);
@@ -65,10 +62,7 @@ class FactorManager
         Odometry predict(int64_t timestamp); 
 
         void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
-        void addOdometryFactor(int64_t timestamp, const Eigen::Vector3d& pose, const Eigen::Vector4d& quat);
-        void addOdometryFactor(int64_t timestamp, const gtsam::Pose3& pose);
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
-        void addHeadingFactor(int64_t timestamp, const double& heading);
 
         gtsam::Values optimize();  
         State runner();
@@ -88,16 +82,12 @@ class FactorManager
         Eigen::Vector3d gravity_vec_;
         Eigen::MatrixXd bias_estimate_vec_;
         Eigen::Matrix3d imu2body_;
-        gtsam::Matrix3 NED2ENU;
         Eigen::Vector4d orient_;
         Eigen::Vector3d gyro_;
         int init_counter_;
         
         gtsam::imuBias::ConstantBias bias_;
         boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
-        boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_copy_;
-
-        ImuBuffer imu_buffer_;
 
         // noise
         gtsam::noiseModel::Isotropic::shared_ptr prior_noise_;
@@ -130,9 +120,6 @@ class FactorManager
         // initialization
         bool initialized_;
         bool compose_odom_;
-        bool sim3_prior_added_; // dep
-        uint8_t start_odom_; // dep
-        uint8_t heading_count_; // dep
         gtsam::Rot3 initial_orientation_;
         gtsam::Pose3 initial_pose_for_odom_;
         gtsam::NavState initial_navstate_;

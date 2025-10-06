@@ -10,7 +10,7 @@ using namespace GliderROS;
 GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glider_node", options)
 {
 
-    declare_parameter("rate", 10.0);  // default freq
+    declare_parameter("rate", 10.0);
     declare_parameter("path", "");
     declare_parameter("use_odom", false);
     declare_parameter("publish_nav_sat_fix", false);
@@ -28,7 +28,6 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     std::string path = this->get_parameter("path").as_string();
     RCLCPP_DEBUG_STREAM(this->get_logger(), "Loading graph params from: " << path);
 
-    // For use_sim_time, it's typically handled automatically in ROS2, but if you need it:
     use_sim_time_ = this->get_clock()->get_clock_type() == RCL_ROS_TIME;
 
     bool use_odom = this->get_parameter("use_odom").as_bool();
@@ -38,18 +37,15 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     utm_zone_ = this->get_parameter("utm_zone").as_string();
     RCLCPP_INFO_STREAM(this->get_logger(), "Using UTM Zone: " << utm_zone_); 
 
-    declination_ = this->get_parameter("declination").as_double() * M_PI / 180.0;
-    RCLCPP_INFO_STREAM(this->get_logger(), "Using Magnetic Declination: " << declination_);
-    
     viz_ = this->get_parameter("viz").as_bool();
 
     origin_easting_ = this->get_parameter("origin_easting").as_double();
     origin_northing_ = this->get_parameter("origin_northing").as_double();
 
-    gps_init_count_ = this->get_parameter("gps_init_count").as_int();
-    gps_counter_ = 0;
+    latest_imu_timestamp_ = 0;
 
     glider_ = std::make_unique<Glider::Glider>(path);
+    current_state_ = Glider::State::Uninitialized();
 
     imu_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     gps_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -60,9 +56,6 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>("/imu", 20, 
                                                                 std::bind(&GliderNode::imuCallback, this, std::placeholders::_1),
                                                                 imu_sub_options);
-    mag_sub_ = this->create_subscription<sensor_msgs::msg::MagneticField>("/mag", 20, 
-                                                                    std::bind(&GliderNode::magCallback, this, std::placeholders::_1), 
-                                                                    imu_sub_options);
     
     auto gps_sub_options = rclcpp::SubscriptionOptions();
     gps_sub_options.callback_group = gps_group_;
@@ -70,21 +63,11 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
                                                                       std::bind(&GliderNode::gpsCallback, this, std::placeholders::_1),
                                                                       gps_sub_options);
 
-    current_state_ = Glider::State::Uninitialized();
-
-    latest_imu_timestamp_ = 0;
-
-    if (use_odom)
-    {
-        auto odom_sub_options = rclcpp::SubscriptionOptions();
-        odom_sub_options.callback_group = gps_group_;
-        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/odom", 1,
-                                                                       std::bind(&GliderNode::odomCallback, this, std::placeholders::_1),
-                                                                       odom_sub_options);
-        pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("/pose", 1,
-                                                                               std::bind(&GliderNode::poseCallback, this, std::placeholders::_1),
-                                                                               odom_sub_options);
-    }
+    auto odom_sub_options = rclcpp::SubscriptionOptions();
+    odom_sub_options.callback_group = gps_group_;
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/odom", 1,
+                                                                   std::bind(&GliderNode::odomCallback, this, std::placeholders::_1),
+                                                                   odom_sub_options);
 
     if (publish_nsf_)
     {
@@ -171,13 +154,6 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
     latest_imu_timestamp_ = timestamp;
 }
 
-void GliderNode::magCallback(const sensor_msgs::msg::MagneticField::ConstSharedPtr msg)
-{
-    int64_t timestamp = getTime(msg->header.stamp);
-    double heading = std::atan2(msg->magnetic_field.x, msg->magnetic_field.y) + declination_;
-    glider_->addMagnetometer(timestamp, heading);
-}
-
 void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
 {
     Eigen::Vector3d gps = GliderROS::Conversions::rosToEigen<Eigen::Vector3d>(*msg);
@@ -201,13 +177,6 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
 }
 
 void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
-{
-    Eigen::Isometry3d pose = GliderROS::Conversions::rosToEigen<Eigen::Isometry3d>(*msg);
-    int64_t timestamp = getTime(msg->header.stamp);
-    glider_->addOdom(timestamp, pose);
-}
-
-void GliderNode::poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg)
 {
     Eigen::Isometry3d pose = GliderROS::Conversions::rosToEigen<Eigen::Isometry3d>(*msg);
     int64_t timestamp = getTime(msg->header.stamp);

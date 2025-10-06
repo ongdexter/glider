@@ -32,7 +32,7 @@ class Odometry
 {
     public:
         Odometry() = default;
-        Odometry(gtsam::Values& val, gtsam::Key key, double scale, int64_t timestamp, bool init = true);
+        Odometry(gtsam::Values& val, gtsam::Key key, int64_t timestamp, bool init = true);
         Odometry(gtsam::NavState& ns, bool init = true);
         Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, bool init = true);
         Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, int64_t timestamp, bool init = true);
@@ -46,10 +46,6 @@ class Odometry
         template<typename T>
         T getVelocity() const;
         template<typename T>
-        T getPoseWithScale() const;
-        template<typename T>
-        T getRelative() const;
-        template<typename T>
         T getGyroscope() const;
 
         static Odometry Uninitialized();
@@ -58,7 +54,6 @@ class Odometry
         double getAltitude() const;
         double getHeading() const;
         double getHeadingDegrees() const;
-        double getScale() const;
         bool isInitialized() const;
 
         double getLatitude(const char* zone);
@@ -67,7 +62,6 @@ class Odometry
         int64_t getTimestamp() const;
 
         void setInitializedStatus(bool init);
-        void offsetPose(double x, double y);
 
     protected:
         template<typename TF, typename TS>
@@ -80,16 +74,12 @@ class Odometry
         gtsam::Point3 position_;
         gtsam::Rot3 orientation_;
         gtsam::Pose3 pose_;
-        gtsam::Similarity3 sim_;
         Eigen::Vector3d gyro_;
 
         double altitude_;
         double heading_;
 
-        double scale_;
-        
         int64_t timestamp_;
-
         bool initialized_;
 };
 } // namespace glider

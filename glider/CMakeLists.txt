@@ -54,10 +54,7 @@ include_directories(
 # Libraries  
 # Make sure to add your source files
 add_library(${PROJECT_NAME} SHARED
-  src/imu_buffer.cpp
-  src/factor_manager.cpp
   src/parameters.cpp
-  src/quaternion.cpp
   src/odometry.cpp
   src/state.cpp
   src/glider.cpp
