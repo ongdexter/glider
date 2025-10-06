@@ -57,7 +57,7 @@ class FactorManager
         static boost::shared_ptr<gtsam::PreintegrationCombinedParams> defaultImuParams(double g);
         
         void initializeGraph();
-        void imuInitialize(const Eigen::Vector3d& accel_meas, const Eigen::Vector3d& gyro_meas, const Eigen::Vector4d& orient);
+        void initializeImu(const Eigen::Vector3d& accel_meas, const Eigen::Vector3d& gyro_meas, const Eigen::Vector4d& orient);
 
         Odometry predict(int64_t timestamp); 
 

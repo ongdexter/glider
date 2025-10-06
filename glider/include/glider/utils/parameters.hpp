@@ -22,22 +22,14 @@ struct Parameters
     double gyro_cov;
     double integration_cov;
     double bias_cov;
-    double use_second_order;
-    double gravity;
     double gps_noise;
-    double heading_noise;
-    double odom_noise;
-    double lag_time; 
-    double odom_orientation_noise;
-    double odom_translation_noise;
-    double odom_scale_noise;
 
+    double gravity;
+    double lag_time; 
     int bias_num_measurements;
 
     std::string frame;
 
-    bool scale_odom;
-    bool correct_imu;
     Eigen::Vector3d t_imu_gps;
 };
 }

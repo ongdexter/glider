@@ -1,17 +1,15 @@
-accelerometer_covariance: 0.00001
-gyroscope_covariance: 0.00001
-integration_covariance: 0.001
-bias_covariance: 0.001
-use_second_order: 0.0
-gravity: 9.81
-bias_num_measurements: 100
-gps_noise: 1.5
-odom_noise: 0.5
-heading_noise: 0.1
-odom_orientation_noise: 0.1
-odom_translation_noise: 1.0
-lag_time: 10.0
-imu_frame: "enu"
+covariances:
+  accelerometer: 0.00001
+  gyroscope: 0.00001
+  integration: 0.001
+  bias: 0.001
+  gps: 2.0
+constants:
+  gravity: 9.81
+  bias_num_measurements: 100
+  lag_time: 10.0
+frame:
+  imu: "enu"
 gps_to_imu:
   x: 0.0
   y: 0.0
