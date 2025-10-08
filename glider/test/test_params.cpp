@@ -27,6 +27,8 @@ TEST(ParamsTestSuite, Covariances)
     // covariances should be positive
     ASSERT_GE(params.accel_cov, 0.0);
     ASSERT_GE(params.gyro_cov, 0.0);
+    ASSERT_GE(params.heading_cov, 0.0);
+    ASSERT_GE(params.roll_pitch_cov, 0.0);
     ASSERT_GE(params.integration_cov, 0.0);
     ASSERT_GE(params.bias_cov, 0.0);
     ASSERT_GE(params.gps_noise, 0.0);

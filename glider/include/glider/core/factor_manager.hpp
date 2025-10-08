@@ -69,6 +69,8 @@ class FactorManager
         bool isGpsInitialized() const;
         bool isSystemInitialized() const;
         Eigen::MatrixXd getBiasEstimate() const;
+        gtsam::PreintegratedCombinedMeasurements getPim() const;
+        gtsam::Key getKeyIndex() const;
 
     private: 
         gtsam::Values optimize();
@@ -87,20 +89,21 @@ class FactorManager
         Parameters params_;
 
         // IMU
+        int init_counter_;
+        Eigen::Vector4d orient_;
         Eigen::Vector3d gravity_vec_;
         Eigen::MatrixXd bias_estimate_vec_;
-        int init_counter_;
         
         gtsam::imuBias::ConstantBias bias_;
         std::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
 
         // noise
         gtsam::noiseModel::Isotropic::shared_ptr prior_noise_;
-        gtsam::noiseModel::Base::shared_ptr odom_noise_;
         gtsam::noiseModel::Isotropic::shared_ptr gps_noise_;
-        gtsam::noiseModel::Base::shared_ptr heading_noise_;
+        gtsam::noiseModel::Base::shared_ptr orient_noise_;
 
         // factor graph
+        uint64_t optimized_count_;
         gtsam::ExpressionFactorGraph graph_;
         gtsam::Values initials_;
         gtsam::Key key_index_;
@@ -114,9 +117,12 @@ class FactorManager
         double last_imu_time_;
         double last_gps_time_;
 
-        // current state
+        // track states
         State current_state_;
-        double current_heading_;
+        State last_state_;
+
+        // initial state
+        gtsam::Rot3 initial_orientation_;
 
         // initialization
         bool sys_initialized_;

@@ -20,6 +20,8 @@ struct Parameters
 
     double accel_cov;
     double gyro_cov;
+    double heading_cov;
+    double roll_pitch_cov;
     double integration_cov;
     double bias_cov;
     double gps_noise;
@@ -27,6 +29,7 @@ struct Parameters
     double gravity;
     double lag_time; 
     int bias_num_measurements;
+    int initial_num_measurements;
 
     std::string frame;
 

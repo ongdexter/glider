@@ -24,14 +24,27 @@ FactorManager::FactorManager(const Parameters& params)
     // setup parameters
     params_ = params;
     imu_params_ = defaultImuParams(params.gravity);
-    isam_params_ = gtsam::ISAM2Params();
-    isam_params_.setRelinearizeThreshold(0.1);
-    isam_params_.relinearizeSkip = 1;
+
 
     // imu initialization
     init_counter_ = 0;
     bias_estimate_vec_ = Eigen::MatrixXd::Zero(params.bias_num_measurements, 6);
     gravity_vec_ = Eigen::Vector3d(0.0, 0.0, params.gravity);
+
+    // set noise model
+    gps_noise_ = gtsam::noiseModel::Isotropic::Sigma(3, params.gps_noise);
+    orient_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(params.roll_pitch_cov, params.roll_pitch_cov, params.heading_cov));
+
+    // set key index
+    key_index_ = 0;
+
+    // setup graph
+    optimized_count_ = 0;
+    isam_params_ = gtsam::ISAM2Params();
+    isam_params_.setRelinearizeThreshold(0.1);
+    isam_params_.relinearizeSkip = 1;
+    isam_ = gtsam::ISAM2(isam_params_);
+    smoother_ = gtsam::IncrementalFixedLagSmoother(params_.lag_time, isam_params_);
 
     LOG(INFO) << "[GLIDER] Factor Manager initialzed";
 }
@@ -74,22 +87,85 @@ void FactorManager::initializeImu(const Eigen::Vector3d& accel_meas, const Eigen
         bias_ = gtsam::imuBias::ConstantBias(Eigen::Vector3d(bias_mean.head(3)),
                                              Eigen::Vector3d(bias_mean.tail(3)));
 
-        std::cout << "Accel bias: " << Eigen::Vector3d(bias_mean.head(3)) << std::endl;
-        std::cout << "Gyro Bias: " << Eigen::Vector3d(bias_mean.tail(3)) << std::endl;
+        // initialize the pim
         pim_ = std::make_shared<gtsam::PreintegratedCombinedMeasurements>(imu_params_, bias_);
+        // initialize the orientation
+        initial_orientation_ = gtsam::Rot3::Quaternion(orient(0), orient(1), orient(2), orient(3));
+        // initialize the graph once the imu is initialized
+        initializeGraph();
+
         imu_initialized_ = true;
         LOG(INFO) << "[GLIDER] IMU initalized";
     }
+}
+
+void FactorManager::initializeGraph() 
+{
+    initials_ = gtsam::InitializePose3::initialize(graph_);
 }
 
 void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps) 
 {
     if (!imu_initialized_)
     {
+        // TODO why am I saving this??
         last_gps_ = gps;
         last_gps_time_ = nanosecIntToDouble(timestamp);
         return;
     }
+    
+    double time = nanosecIntToDouble(timestamp);
+
+    if (key_index_ == 0)
+    {
+        // set the initial NavState 
+        // The initial orientation is the the initial orientation from the imu initialization
+        // The initial position is from the gps 
+        // Initial velocity is set to zero
+        gtsam::Pose3 initial_pose = gtsam::Pose3(initial_orientation_, gtsam::Point3(gps(0), gps(1), gps(2)));
+        gtsam::NavState initial_navstate(initial_pose, gtsam::Point3(0.0, 0.0, 0.0)); // TODO why do I need this??
+        
+        // save the initial values
+        initials_.insert(X(key_index_), initial_pose);
+        initials_.insert(V(key_index_), gtsam::Point3(0.0, 0.0, 0.0));
+        initials_.insert(B(key_index_), bias_);
+
+        // save the timestamps for the smoother
+        smoother_timestamps_[X(key_index_)] = time;
+        smoother_timestamps_[V(key_index_)] = time;
+        smoother_timestamps_[B(key_index_)] = time;
+
+        // add prior factors to the graph
+        graph_.add(gtsam::PriorFactor<gtsam::Pose3>(X(key_index_), initial_pose, gtsam::noiseModel::Isotropic::Sigma(6, 0.001)));
+        graph_.add(gtsam::PriorFactor<gtsam::Point3>(V(key_index_), gtsam::Point3(0.0, 0.0, 0.0), gtsam::noiseModel::Isotropic::Sigma(3, 0.001)));
+        graph_.add(gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(B(key_index_), bias_, gtsam::noiseModel::Isotropic::Sigma(6, 0.001)));
+
+        key_index_++;
+        gps_initialized_ = true;
+        LOG(INFO) << "[GLIDER] GPS Initialized";
+        return;
+    }
+   
+    std::unique_lock<std::mutex> lock(mutex_);
+    graph_.add(gtsam::CombinedImuFactor(X(key_index_), V(key_index_), X(key_index_-1), V(key_index_-1), B(key_index_), B(key_index_-1), *pim_));
+    lock.unlock();
+
+    initials_.insert(X(key_index_), current_state_.getPose<gtsam::Pose3>());
+    initials_.insert(V(key_index_), current_state_.getVelocity<gtsam::Vector3>());
+    initials_.insert(B(key_index_), bias_);
+
+    smoother_timestamps_[X(key_index_)] = time;
+    smoother_timestamps_[V(key_index_)] = time;
+    smoother_timestamps_[B(key_index_)] = time;
+    
+    gtsam::Point3 meas(gps(0), gps(1), gps(2));
+    gtsam::Rot3 rot = gtsam::Rot3::Quaternion(orient_(0), orient_(1), orient_(2), orient_(3));
+
+    graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
+    // TODO how do we constrain orientation???
+    //graph_.add(gtsam::PriorFactor<gtsam::Rot3>(X(key_index_), rot, orient_noise_));
+
+    key_index_++;
 }
 
 void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient) 
@@ -112,7 +188,10 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
     // both the runner and the add imu access the pim in different threads
     // so we need to lock it when we manipulate it
     std::lock_guard<std::mutex> lock(mutex_);
+    
     pim_->integrateMeasurement(accel, gyro, dt);
+    orient_ = orient;
+
     last_imu_time_ = current_time;
 }
 
@@ -121,19 +200,54 @@ Odometry FactorManager::predict(int64_t timestamp)
     // TODO
 }
 
-void FactorManager::initializeGraph() 
-{
-    // TODO
-}
 
 gtsam::Values FactorManager::optimize() 
 {
-    // TODO
+    // TODO make this configurable between smoother and isam
+    isam_.update(graph_, initials_);
+    gtsam::Values result = isam_.calculateEstimate();
+    optimized_count_++;
+    if (optimized_count_ == params_.initial_num_measurements)
+    {
+        LOG(INFO) << "[GLIDER] System Initialized";
+        sys_initialized_ = true;
+    }
+
+    return result;
 }
 
 State FactorManager::runner() 
 {
-    // TODO
+    // if the graph or imu is not initialized we cannot optimize
+    // so we return an uninitialized state
+    if (!imu_initialized_ || !gps_initialized_) return State::Uninitialized();
+
+    gtsam::Values result = optimize();
+
+    last_state_ = current_state_;
+
+    // get the covariance from isam
+    gtsam::Matrix pose_cov = isam_.marginalCovariance(X(key_index_-1));
+    gtsam::Matrix vel_cov = isam_.marginalCovariance(V(key_index_-1));
+    // save the current state we just optimized for
+    current_state_ = State(result, key_index_-1, pose_cov, vel_cov, true);
+
+    // reset the pim
+    pim_->resetIntegration();
+    // reset the graph
+    initials_.clear();
+    smoother_timestamps_.clear();
+    graph_.resize(0);
+
+    // we want to optimize a few times before
+    // publishing to allow convergence
+    // otherwise we return an unitialized state
+    if (!sys_initialized_)
+    {
+        return State::Uninitialized();
+    }
+
+    return current_state_;
 }
 
 gtsam::ExpressionFactorGraph FactorManager::getGraph()
@@ -159,4 +273,14 @@ bool FactorManager::isGpsInitialized() const
 Eigen::MatrixXd FactorManager::getBiasEstimate() const
 {
     return bias_estimate_vec_;
+}
+
+gtsam::PreintegratedCombinedMeasurements FactorManager::getPim() const
+{
+    return *pim_;
+}
+
+gtsam::Key FactorManager::getKeyIndex() const
+{
+    return key_index_;
 }

@@ -17,14 +17,17 @@ Glider::Parameters::Parameters(const std::string& path)
         // covaraiances
         accel_cov = config["covariances"]["accelerometer"].as<double>();
         gyro_cov = config["covariances"]["gyroscope"].as<double>();
+        heading_cov = config["covariances"]["heading"].as<double>();
+        roll_pitch_cov = config["covariances"]["roll_pitch"].as<double>();
         integration_cov = config["covariances"]["integration"].as<double>();
         bias_cov = config["covariances"]["bias"].as<double>();
         gps_noise = config["covariances"]["gps"].as<double>();
-
+        
         // constants
         gravity = config["constants"]["gravity"].as<double>();
         lag_time = config["constants"]["lag_time"].as<double>();
         bias_num_measurements = config["constants"]["bias_num_measurements"].as<int>();
+        initial_num_measurements = config["constants"]["initial_num_measurements"].as<int>();
 
         frame = config["frame"]["imu"].as<std::string>();
         t_imu_gps(0) = config["gps_to_imu"]["x"].as<double>();
