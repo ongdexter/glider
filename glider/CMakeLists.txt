@@ -57,9 +57,11 @@ include_directories(
 # Make sure to add your source files
 add_library(${PROJECT_NAME} SHARED
   src/parameters.cpp
+  src/time.cpp
   src/odometry.cpp
   src/state.cpp
   src/factor_manager.cpp
+  src/glider.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -177,9 +179,17 @@ if (BUILD_TESTS)
         ${PROJECT_NAME}
     )
 
+    add_executable(glider_test test/test_glider.cpp)
+    target_link_libraries(glider_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+    )
+
     include(GoogleTest)
     gtest_discover_tests(utm_test)
     gtest_discover_tests(heading_test)
     gtest_discover_tests(params_test)
     gtest_discover_tests(manager_test)
+    gtest_discover_tests(glider_test)
 endif()

@@ -9,7 +9,6 @@
 
 #include <cmath>
 #include <Eigen/Dense>
-#include <gtsam/geometry/Pose3.h>
 
 #include "glider/core/factor_manager.hpp"
 #include "glider/utils/geodetics.hpp"
@@ -23,9 +22,8 @@ class Glider
         Glider() = default;
         Glider(const std::string& path);
 
-        void addGPS(int64_t timestamp, Eigen::Vector3d& gps);
-        void addIMU(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
-        void addOdom(int64_t timestamp, Eigen::Isometry3d& pose);
+        void addGps(int64_t timestamp, Eigen::Vector3d& gps);
+        void addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
 
         Odometry interpolate(int64_t timestamp);
         State optimize();
@@ -34,16 +32,7 @@ class Glider
 
         FactorManager factor_manager_;
 
-        double initial_heading_;
-        double current_heading_;
-        bool set_initial_heading_;
-        bool correct_imu_;
         std::string frame_;
         Eigen::Vector3d t_imu_gps_;
-
-        Eigen::Matrix3d ned_to_enu_rot_;
-        Eigen::Quaterniond ned_to_enu_quat_;
-
-        Eigen::Isometry3d prev_pose_;
 };
 }
