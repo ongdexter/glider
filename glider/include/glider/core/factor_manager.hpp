@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <glog/logging.h>
+
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/GPSFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
@@ -27,11 +29,13 @@
 #include "state.hpp"
 #include "odometry.hpp"
 #include "glider/utils/parameters.hpp"
+#include "glider/utils/time.hpp"
 
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
 #include <map>
+#include <mutex>
 #include <cmath>
 #include <numeric>
 #include <tuple>
@@ -41,37 +45,41 @@ using gtsam::symbol_shorthand::B; // Bias
 using gtsam::symbol_shorthand::V; // Velocity
 using gtsam::symbol_shorthand::X; // Pose
 
-// Helper function declarations
-Eigen::Vector3d vector3(double x, double y, double z);
-double nanosecInt2Float(int64_t timestamp);
-
 namespace Glider 
 {
 
 class FactorManager
 {
     public:
+        // Constructos
         FactorManager() = default;
         FactorManager(const Parameters& params);    
         
-        static boost::shared_ptr<gtsam::PreintegrationCombinedParams> defaultImuParams(double g);
+        // state predictors
+        Odometry predict(int64_t timestamp); 
+        State runner();
+
+        // measurements adders
+        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
+        void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
+
+        // getters and checkers 
+        gtsam::ExpressionFactorGraph getGraph();
+        bool isImuInitialized() const;
+        bool isGpsInitialized() const;
+        bool isSystemInitialized() const;
+        Eigen::MatrixXd getBiasEstimate() const;
+
+    private: 
+        gtsam::Values optimize();
+        
+        boost::shared_ptr<gtsam::PreintegrationCombinedParams> defaultImuParams(double g);
         
         void initializeGraph();
         void initializeImu(const Eigen::Vector3d& accel_meas, const Eigen::Vector3d& gyro_meas, const Eigen::Vector4d& orient);
 
-        Odometry predict(int64_t timestamp); 
+        static std::mutex mutex_;
 
-        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
-        void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
-
-        gtsam::Values optimize();  
-        State runner();
-
-        gtsam::ExpressionFactorGraph getGraph();
-        double getInitialHeading() const;
-        bool isInitialized();
-
-    private:
         // parameters
         std::map<std::string, Eigen::MatrixXd> matrix_config_;
         gtsam::ISAM2Params isam_params_;
@@ -81,13 +89,10 @@ class FactorManager
         // IMU
         Eigen::Vector3d gravity_vec_;
         Eigen::MatrixXd bias_estimate_vec_;
-        Eigen::Matrix3d imu2body_;
-        Eigen::Vector4d orient_;
-        Eigen::Vector3d gyro_;
         int init_counter_;
         
         gtsam::imuBias::ConstantBias bias_;
-        boost::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
+        std::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
 
         // noise
         gtsam::noiseModel::Isotropic::shared_ptr prior_noise_;
@@ -106,22 +111,16 @@ class FactorManager
         // previous state
         Eigen::Vector3d last_gps_;
         gtsam::Matrix last_marginal_covariance_;
-        gtsam::Pose3 last_odom_;
-        double last_optimize_time_;
         double last_imu_time_;
         double last_gps_time_;
-        double estimated_scale_;
-        State last_state_;
 
         // current state
         State current_state_;
         double current_heading_;
 
         // initialization
-        bool initialized_;
-        bool compose_odom_;
-        gtsam::Rot3 initial_orientation_;
-        gtsam::Pose3 initial_pose_for_odom_;
-        gtsam::NavState initial_navstate_;
+        bool sys_initialized_;
+        bool imu_initialized_;
+        bool gps_initialized_;
 };
 }

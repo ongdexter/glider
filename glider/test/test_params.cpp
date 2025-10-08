@@ -2,20 +2,39 @@
 * Unit test for parameters
 *
 */
-#include <iostream>
 #include <gtest/gtest.h>
 
-#include "glider/utils/params.hpp"
+#include "glider/utils/parameters.hpp"
 
-Params params;
-
-TEST(ParamsTestSuite, DoubleGravity)
+TEST(ParamsTestSuite, Constants)
 {
-    /* Test that you load the parameters file correctly
-    *  by makeing sure gravity is 9.81
-    */
-    std::map<std::string, double> p;
-    p = params.load<double>("/home/jason/ws/src/glider/test/params.yaml");
-    std::cout << p["gravity"] << std::endl;
-    ASSERT_EQ(p["gravity"], 9.81);
+    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    
+    // gravity can be positive or negative depending on
+    // imu frame
+    ASSERT_EQ(std::abs(params.gravity), 9.81);
+    // we want at least 100 measurements
+    ASSERT_GE(params.bias_num_measurements, 100);
+    // lag time should not be too long
+    ASSERT_LE(params.lag_time, 60.0);
+}
+
+
+TEST(ParamsTestSuite, Covariances)
+{
+    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+
+    // covariances should be positive
+    ASSERT_GE(params.accel_cov, 0.0);
+    ASSERT_GE(params.gyro_cov, 0.0);
+    ASSERT_GE(params.integration_cov, 0.0);
+    ASSERT_GE(params.bias_cov, 0.0);
+    ASSERT_GE(params.gps_noise, 0.0);
+}
+
+TEST(ParamsTestSuite, Frame)
+{ 
+    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+
+    EXPECT_TRUE(params.frame == "ned" || params.frame == "enu");
 }

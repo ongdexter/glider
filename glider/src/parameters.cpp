@@ -19,7 +19,7 @@ Glider::Parameters::Parameters(const std::string& path)
         gyro_cov = config["covariances"]["gyroscope"].as<double>();
         integration_cov = config["covariances"]["integration"].as<double>();
         bias_cov = config["covariances"]["bias"].as<double>();
-        gps_noise = config["convariances"]["gps"].as<double>();
+        gps_noise = config["covariances"]["gps"].as<double>();
 
         // constants
         gravity = config["constants"]["gravity"].as<double>();

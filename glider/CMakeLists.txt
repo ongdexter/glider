@@ -33,7 +33,9 @@ find_package(Eigen3 REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(GTSAM_UNSTABLE REQUIRED)
 find_package(GTest REQUIRED)
+find_package(glog REQUIRED)
 find_package(yaml-cpp REQUIRED)
+# ROS 2
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -57,11 +59,12 @@ add_library(${PROJECT_NAME} SHARED
   src/parameters.cpp
   src/odometry.cpp
   src/state.cpp
-  src/glider.cpp
+  src/factor_manager.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     Eigen3::Eigen
+    glog::glog
     gtsam
     gtsam_unstable
     yaml-cpp
@@ -153,29 +156,6 @@ if (BUILD_TESTS)
       ${PROJECT_NAME}
     )
 
-    #build params test
-    add_executable(params_test test/test_params.cpp)
-    target_link_libraries(params_test
-      GTest::GTest
-      GTest::Main
-      ${PROJECT_NAME}
-    )
-
-    #build factor tests
-    add_executable(factor_test test/test_factors.cpp)
-    target_link_libraries(factor_test
-      GTest::GTest
-      GTest::Main
-      ${PROJECT_NAME}
-    )
-
-    add_executable(quaternion_test test/test_quaternion.cpp)
-    target_link_libraries(quaternion_test
-      GTest::GTest
-      GTest::Main
-      ${PROJECT_NAME}
-    )
-
     add_executable(heading_test test/test_heading.cpp)
     target_link_libraries(heading_test
       GTest::GTest
@@ -183,10 +163,23 @@ if (BUILD_TESTS)
       ${PROJECT_NAME}
     )
 
+    add_executable(params_test test/test_params.cpp)
+    target_link_libraries(params_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+    )
+
+    add_executable(manager_test test/test_factor_manager.cpp)
+    target_link_libraries(manager_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+    )
+
     include(GoogleTest)
     gtest_discover_tests(utm_test)
-    gtest_discover_tests(params_test)
-    gtest_discover_tests(factor_test)
-    gtest_discover_tests(quaternion_test)
     gtest_discover_tests(heading_test)
+    gtest_discover_tests(params_test)
+    gtest_discover_tests(manager_test)
 endif()
