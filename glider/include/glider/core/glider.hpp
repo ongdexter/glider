@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <Eigen/Dense>
+#include <glog/logging.h>
 
 #include "glider/core/factor_manager.hpp"
 #include "glider/utils/geodetics.hpp"

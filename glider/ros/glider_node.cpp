@@ -9,38 +9,32 @@ using namespace GliderROS;
 
 GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glider_node", options)
 {
+    // Declare ROS parameters
+    declare_parameter("publishers.rate", 10.0);
+    declare_parameter("publishers.nav_sat_fix", false);
+    declare_parameter("publishers.viz.use", false);
+    declare_parameter("publishers.viz.origin_easting", 0.0);
+    declare_parameter("publishers.viz.origin_northing", 0.0);
 
-    declare_parameter("rate", 10.0);
+    declare_parameter("subscribers.use_odom", false);
+
     declare_parameter("path", "");
-    declare_parameter("use_odom", false);
-    declare_parameter("publish_nav_sat_fix", false);
-    declare_parameter("utm_zone", "18S");
-    declare_parameter("declination", 12.0);
-    declare_parameter("origin_easting", 0.0);
-    declare_parameter("origin_northing", 0.0);
-    declare_parameter("viz", false);
-    declare_parameter("gps_init_count", 10);
 
     // Get parameters
-    double freq = this->get_parameter("rate").as_double();
+    double freq = this->get_parameter("publishers.rate").as_double();
     RCLCPP_INFO_STREAM(this->get_logger(), "Using prediction rate: " << freq);
 
-    std::string path = this->get_parameter("path").as_string();
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "Loading graph params from: " << path);
+    publish_nsf_ = this->get_parameter("publishers.nav_sat_fix").as_bool();
+    viz_ = this->get_parameter("publishers.viz.use").as_bool();
+    origin_easting_ = this->get_parameter("publishers.viz.origin_easting").as_double();
+    origin_northing_ = this->get_parameter("publishers.viz.origin_northing").as_double();
 
-    use_sim_time_ = this->get_clock()->get_clock_type() == RCL_ROS_TIME;
-
-    bool use_odom = this->get_parameter("use_odom").as_bool();
+    bool use_odom = this->get_parameter("subscribers.use_odom").as_bool();
     RCLCPP_INFO_STREAM(this->get_logger(), "Fusing Odometry: " << std::boolalpha << use_odom);
     
-    publish_nsf_ = this->get_parameter("publish_nav_sat_fix").as_bool();
-    utm_zone_ = this->get_parameter("utm_zone").as_string();
-    RCLCPP_INFO_STREAM(this->get_logger(), "Using UTM Zone: " << utm_zone_); 
-
-    viz_ = this->get_parameter("viz").as_bool();
-
-    origin_easting_ = this->get_parameter("origin_easting").as_double();
-    origin_northing_ = this->get_parameter("origin_northing").as_double();
+    std::string path = this->get_parameter("path").as_string();
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "Loading graph params from: " << path);
+    use_sim_time_ = this->get_clock()->get_clock_type() == RCL_ROS_TIME;
 
     latest_imu_timestamp_ = 0;
 
@@ -86,8 +80,9 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
         odom_viz_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom/viz", 10);
     }
 
-    std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
-    timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
+    // TODO add in predictor
+    //std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
+    //timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
     RCLCPP_INFO(this->get_logger(), "GliderNode Initialized");
 }
 

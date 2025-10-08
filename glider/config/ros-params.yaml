@@ -8,4 +8,4 @@ glider_node:
         origin_easting: 482933.2819920078
         origin_northing: 4421345.135559781
     subscribers:
-      odom: false
+      use_odom: false

@@ -197,7 +197,8 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
 
 Odometry FactorManager::predict(int64_t timestamp)
 {
-    // TODO
+    // TODO update this.
+    return Odometry::Uninitialized();
 }
 
 

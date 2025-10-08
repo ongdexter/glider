@@ -22,6 +22,12 @@ Glider::Glider(const std::string& path)
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 
+void Glider::initializeLogging() const
+{
+    google::InitGoogleLogging("Glider");
+    FLAG_log_dir = "/var/log/glider";
+}
+
 void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
 {
     // transform from GPS To UTM

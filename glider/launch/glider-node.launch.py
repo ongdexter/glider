@@ -1,3 +1,11 @@
+"""
+    Jason Hughes
+    June 2025
+
+    launch glider as an
+    independent node
+"""
+
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -7,6 +15,9 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    # create logging directory
+    os.mkdir("/var/log/glider", exist_ok=True)
+
     # Declare launch arguments
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
