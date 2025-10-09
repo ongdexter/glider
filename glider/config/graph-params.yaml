@@ -13,6 +13,9 @@ constants:
   lag_time: 10.0
 frame:
   imu: "enu"
+logging:
+  enable: true
+  stdout: true
 gps_to_imu:
   x: 0.0
   y: 0.0

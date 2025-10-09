@@ -12,6 +12,8 @@ namespace Glider
 
 Glider::Glider(const std::string& path) 
 {
+    initializeLogging();
+
     Parameters params = Parameters::Load(path);
     factor_manager_ = FactorManager(params);
 
@@ -25,7 +27,8 @@ Glider::Glider(const std::string& path)
 void Glider::initializeLogging() const
 {
     google::InitGoogleLogging("Glider");
-    FLAG_log_dir = "/var/log/glider";
+    FLAGS_log_dir = "/home/jason/.ros/log/glider";
+    FLAGS_alsologtostderr = 1;
 }
 
 void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
@@ -47,6 +50,7 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
     }
     meas(2) = gps(2);
 
+    // TODO t_imu_gps_ needs to be rotated!!
     meas = meas + t_imu_gps_;
 
     factor_manager_.addGpsFactor(timestamp, meas);
@@ -71,13 +75,29 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
 
 Odometry Glider::interpolate(int64_t timestamp)
 {
-    Odometry odom = factor_manager_.predict(timestamp);
-    return odom;
+    try
+    {
+        Odometry odom = factor_manager_.predict(timestamp);
+        return odom;
+    }
+    catch (const std::exception& e)
+    {
+        LOG(ERROR) << "Interpolation Error: " << e.what();
+        return Odometry::Uninitialized();
+    }
 }
 
 State Glider::optimize()
 {
-    State state = factor_manager_.runner();
-    return state;
+    try
+    {   
+        State state = factor_manager_.runner();
+        return state;
+    }
+    catch (const std::exception& e)
+    {
+        LOG(ERROR) << "Optimization Error: " << e.what();
+        return State::Uninitialized();
+    }
 }
 }

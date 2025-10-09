@@ -16,7 +16,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # create logging directory
-    os.mkdir("/var/log/glider", exist_ok=True)
+    os.makedirs("/home/jason/.ros/log/glider", exist_ok=True)
 
     # Declare launch arguments
     use_sim_time_arg = DeclareLaunchArgument(
@@ -48,7 +48,7 @@ def generate_launch_description():
     graph_params_file = PathJoinSubstitution([
         glider_share,
         'config',
-        'vectornav-vn100t.yaml'
+        'graph-params.yaml'
     ])
      
     # Create the glider node
@@ -64,9 +64,8 @@ def generate_launch_description():
              'use_odom': use_odom}
         ],
         remappings=[
-            ('/gps', '/ublox_gps_node/fix'),
-            ('/imu', '/vectornav/imu'),
-            ('/mag', '/vectornav/magnetic'),
+            ('/gps', '/ublox/fix'),
+            ('/imu', '/VN100T/imu'),
             ('/odom', '/Odometry'),
         ]
     )

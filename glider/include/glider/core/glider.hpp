@@ -31,6 +31,8 @@ class Glider
         
     private:
 
+        void initializeLogging() const;
+
         FactorManager factor_manager_;
 
         std::string frame_;

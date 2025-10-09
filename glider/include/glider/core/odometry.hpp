@@ -33,8 +33,7 @@ class Odometry
     public:
         Odometry() = default;
         Odometry(gtsam::Values& val, gtsam::Key key, int64_t timestamp, bool init = true);
-        Odometry(gtsam::NavState& ns, bool init = true);
-        Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, bool init = true);
+        Odometry(gtsam::NavState& ns, int64_t timestamp, bool init = true);
         Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, int64_t timestamp, bool init = true);
 
         template<typename T>

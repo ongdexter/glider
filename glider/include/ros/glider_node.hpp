@@ -44,6 +44,11 @@ class GliderNode : public rclcpp::Node
 
         // utility functions
         int64_t getTime(const builtin_interfaces::msg::Time& stamp) const;
+        void publishOdometry(Glider::State& state) const;
+        void publishOdometry(Glider::Odometry& odom) const;
+        void publishNavSatFix(Glider::State& state) const;
+        void publishNavSatFix(Glider::Odometry& odom) const;
+        void publishOdometryViz(nav_msgs::msg::Odometry viz_msg) const;
 
         // subscriptions
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::ConstSharedPtr gps_sub_;

@@ -147,7 +147,7 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
     }
    
     std::unique_lock<std::mutex> lock(mutex_);
-    graph_.add(gtsam::CombinedImuFactor(X(key_index_), V(key_index_), X(key_index_-1), V(key_index_-1), B(key_index_), B(key_index_-1), *pim_));
+    graph_.add(gtsam::CombinedImuFactor(X(key_index_-1), V(key_index_-1), X(key_index_), V(key_index_), B(key_index_-1), B(key_index_), *pim_));
     lock.unlock();
 
     initials_.insert(X(key_index_), current_state_.getPose<gtsam::Pose3>());
@@ -198,7 +198,16 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
 Odometry FactorManager::predict(int64_t timestamp)
 {
     // TODO update this.
-    return Odometry::Uninitialized();
+    //return Odometry::Uninitialized();
+    if (sys_initialized_ && pim_)
+    {
+        gtsam::NavState result = pim_->predict(current_state_.getNavState(), bias_);
+        return Odometry(result, timestamp, true);
+    }
+    else
+    {
+        return Odometry::Uninitialized();
+    }
 }
 
 

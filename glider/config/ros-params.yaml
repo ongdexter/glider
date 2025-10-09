@@ -4,7 +4,7 @@ glider_node:
       rate: 100.0
       nav_sat_fix: false
       viz:
-        use: false
+        use: true
         origin_easting: 482933.2819920078
         origin_northing: 4421345.135559781
     subscribers:

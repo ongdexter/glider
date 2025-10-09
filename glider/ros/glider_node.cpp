@@ -81,8 +81,8 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     }
 
     // TODO add in predictor
-    //std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
-    //timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
+    std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
+    timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
     RCLCPP_INFO(this->get_logger(), "GliderNode Initialized");
 }
 
@@ -93,48 +93,12 @@ int64_t GliderNode::getTime(const builtin_interfaces::msg::Time& stamp) const
 
 void GliderNode::interpolationCallback()
 {
-    if (!initialized_ || !current_state_.isInitialized()) return;
-    
-    if (latest_imu_timestamp_ <= 0)
-    {
-        return;
-    }
-    int64_t timestamp = latest_imu_timestamp_;    
-    Glider::Odometry odom;
-    try {
-        odom = glider_->interpolate(timestamp);
-    } 
-    catch (const std::exception& e) 
-    {
-        RCLCPP_WARN(this->get_logger(), "Interpolation error: %s", e.what());
-        return;
-    }
+    // if the state is not initialized we cannot interpolate
+    if (!current_state_.isInitialized()) return;
+    int64_t timestamp = getTime(this->now());
+    Glider::Odometry odom = glider_->interpolate(timestamp);
 
-    if (!odom.isInitialized()) return;
-    if (publish_nsf_)
-    {
-        sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(odom);
-        // TODO type addCovaraince
-        //GliderROS::Conversions::addCovariance<sensor_msgs::msg::NavSatFix>(current_state_, msg);
-        gps_pub_->publish(msg);
-    }
-    else
-    {
-        nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(odom);
-        GliderROS::Conversions::addCovariance<nav_msgs::msg::Odometry>(current_state_, msg);
-        odom_pub_->publish(msg);
-
-        if (viz_)
-        {
-            nav_msgs::msg::Odometry viz_msg = msg;
-            double x = viz_msg.pose.pose.position.x - origin_easting_;
-            double y = viz_msg.pose.pose.position.y - origin_northing_;
-            viz_msg.pose.pose.position.x = x;
-            viz_msg.pose.pose.position.y = y;
-
-            odom_viz_pub_->publish(viz_msg);
-        }
-    }
+    (publish_nsf_) ? publishNavSatFix(odom) : publishOdometry(odom);
 }
 
 void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
@@ -144,7 +108,7 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
     Eigen::Vector4d orient = GliderROS::Conversions::rosToEigen<Eigen::Vector4d>(msg->orientation);
     int64_t timestamp = getTime(msg->header.stamp);
 
-    glider_->addIMU(timestamp, accel, gyro, orient);
+    glider_->addImu(timestamp, accel, gyro, orient);
 
     latest_imu_timestamp_ = timestamp;
 }
@@ -155,27 +119,63 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
 
     int64_t timestamp = getTime(msg->header.stamp);
 
-    glider_->addGPS(timestamp, gps);
+    glider_->addGps(timestamp, gps);
 
-    try {        
-        current_state_ = glider_->optimize();
-    }
-    catch (const std::exception& e) 
+    current_state_ = glider_->optimize();
+    if (current_state_.isInitialized())
     {
-        RCLCPP_WARN(this->get_logger(), "Optimization error: %s", e.what());
-        return;
-    }
-    if (gps_counter_++ > gps_init_count_)
-    {
-        if (!initialized_) initialized_ = true;
+        RCLCPP_INFO(get_logger(), "Publishing Odom");
+        (publish_nsf_) ? publishNavSatFix(current_state_) : publishOdometry(current_state_);
     }
 }
 
 void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
 {
-    Eigen::Isometry3d pose = GliderROS::Conversions::rosToEigen<Eigen::Isometry3d>(*msg);
-    int64_t timestamp = getTime(msg->header.stamp);
-    glider_->addOdom(timestamp, pose);
+    // TODO
+    //Eigen::Isometry3d pose = GliderROS::Conversions::rosToEigen<Eigen::Isometry3d>(*msg);
+    //int64_t timestamp = getTime(msg->header.stamp);
+    //glider_->addOdom(timestamp, pose);
+}
+
+void GliderNode::publishOdometry(Glider::State& state) const
+{
+    nav_msgs::msg::Odometry msg = GliderROS::Conversions::stateToRos<nav_msgs::msg::Odometry>(state);
+    odom_pub_->publish(msg);
+    
+    if (viz_) publishOdometryViz(msg);
+}
+
+void GliderNode::publishOdometry(Glider::Odometry& odom) const
+{
+    nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(odom);
+    GliderROS::Conversions::addCovariance<nav_msgs::msg::Odometry>(current_state_, msg);
+    odom_pub_->publish(msg);
+
+    if (viz_) publishOdometryViz(msg);
+}
+
+void GliderNode::publishNavSatFix(Glider::State& state) const
+{
+    // TODO add covariance
+    sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::stateToRos<sensor_msgs::msg::NavSatFix>(state);
+    gps_pub_->publish(msg);
+}
+
+void GliderNode::publishNavSatFix(Glider::Odometry& odom) const
+{
+    // TODO add covariance
+    sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(odom);
+    gps_pub_->publish(msg);
+}
+
+void GliderNode::publishOdometryViz(nav_msgs::msg::Odometry viz_msg) const
+{ 
+    double x = viz_msg.pose.pose.position.x - origin_easting_;
+    double y = viz_msg.pose.pose.position.y - origin_northing_;
+    viz_msg.pose.pose.position.x = x;
+    viz_msg.pose.pose.position.y = y;
+
+    odom_viz_pub_->publish(viz_msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(GliderROS::GliderNode)

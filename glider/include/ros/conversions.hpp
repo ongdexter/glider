@@ -63,8 +63,6 @@ class Conversions
             static geometry_msgs::msg::PoseStamped poseConvert(const Eigen::Isometry3d& vec);
 
             static sensor_msgs::msg::NavSatFix gpsConvert(const Eigen::Vector3d& gps);
-
-            static sensor_msgs::msg::PointCloud2 pointCloudConvert(const Eigen::Array3Xd& vec);
         };
 
         static std_msgs::msg::Header getHeader(int64_t timestamp, std::string frame);

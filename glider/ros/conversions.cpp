@@ -53,9 +53,15 @@ Output Conversions::eigenToRos(const Input& vec)
     {
         return EigenToRos::poseConvert(vec);
     }
-    else if constexpr (std::is_same_v<Input, Eigen::Array3Xd>)
+    else
     {
-        return EigenToRos::pointCloudConvert(vec);
+        static_assert(std::is_same_v<Input, Eigen::Vector3d> ||
+                      std::is_same_v<Input, Eigen::Vector4d> ||
+                      std::is_same_v<Input, Eigen::Isometry3d>, "Unsupported Eigen type");
+        static_assert(std::is_same_v<Output, geometry_msgs::msg::Vector3> ||
+                      std::is_same_v<Output, sensor_msgs::msg::NavSatFix> ||
+                      std::is_same_v<Output, geometry_msgs::msg::Quaternion> ||
+                      std::is_same_v<Output, geometry_msgs::msg::PoseStamped>, "Unsupported Ros Msg type");
     }
 }
 
@@ -146,32 +152,6 @@ geometry_msgs::msg::PoseStamped Conversions::EigenToRos::poseConvert(const Eigen
     return msg;
 }
 
-sensor_msgs::msg::PointCloud2 Conversions::EigenToRos::pointCloudConvert(const Eigen::Array3Xd& vec)
-{
-    sensor_msgs::msg::PointCloud2 msg;
-
-    msg.header.frame_id = "camera";
-    msg.height = 1; 
-    msg.width = vec.cols();
-    msg.is_dense = false;
-
-    sensor_msgs::PointCloud2Modifier modifier(msg);
-    modifier.setPointCloud2FieldsByString(1, "xyz");
-    modifier.resize(vec.cols());
-
-    sensor_msgs::PointCloud2Iterator<float> iter_x(msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iter_y(msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iter_z(msg, "z");
-
-    for (int i = 0; i < vec.cols(); ++i, ++iter_x, ++iter_y, ++iter_z)
-    {
-        *iter_x = static_cast<float>(vec(0, i));
-        *iter_y = static_cast<float>(vec(1, i));
-        *iter_z = static_cast<float>(vec(2, i));
-    }
-    return msg;
-}
-
 std_msgs::msg::Header Conversions::getHeader(int64_t timestamp, std::string frame)
 {
     std_msgs::msg::Header msg;
@@ -230,8 +210,8 @@ Output Conversions::odomToRos(Glider::Odometry& odom, const char* zone)
     }
     else
     {
-        static_assert(!std::is_same_v<Output, sensor_msgs::msg::NavSatFix> ||
-                      !std::is_same_v<Output, nav_msgs::msg::Odometry>, "unsupported ros msg, use Odometry or NavSatFix");
+        static_assert(std::is_same_v<Output, sensor_msgs::msg::NavSatFix> ||
+                      std::is_same_v<Output, nav_msgs::msg::Odometry>, "unsupported ros msg, use Odometry or NavSatFix");
     }
 }
 
@@ -304,7 +284,7 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
             }
         }
         msg.header = getHeader(state.getTimestamp(), "enu");
-
+        return msg;
     }
     else
     {
@@ -377,7 +357,6 @@ template geometry_msgs::msg::Vector3 Conversions::eigenToRos<geometry_msgs::msg:
 template geometry_msgs::msg::Quaternion Conversions::eigenToRos<geometry_msgs::msg::Quaternion>(const Eigen::Vector4d& vec);
 template sensor_msgs::msg::NavSatFix Conversions::eigenToRos<sensor_msgs::msg::NavSatFix>(const Eigen::Vector3d& vec);
 template geometry_msgs::msg::PoseStamped Conversions::eigenToRos<geometry_msgs::msg::PoseStamped>(const Eigen::Isometry3d& vec);
-template sensor_msgs::msg::PointCloud2 Conversions::eigenToRos<sensor_msgs::msg::PointCloud2>(const Eigen::Array3Xd& vec);
 
 template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::Odometry& odom, const char* zone);
 template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::Odometry& odom, const char* zone);

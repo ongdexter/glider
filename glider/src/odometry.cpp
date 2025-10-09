@@ -25,7 +25,7 @@ Odometry::Odometry(gtsam::Values& vals, gtsam::Key key_index, int64_t timestamp,
     initialized_ = init;
 }
 
-Odometry::Odometry(gtsam::NavState& ns, bool init)
+Odometry::Odometry(gtsam::NavState& ns, int64_t timestamp, bool init)
 {
     position_ = ns.position();
     orientation_ = ns.attitude();
@@ -34,18 +34,7 @@ Odometry::Odometry(gtsam::NavState& ns, bool init)
     altitude_ = position_.z();
     heading_ = orientation_.yaw();
     initialized_ = init;
-}
-
-Odometry::Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, bool init)
-{
-    position_ = ns.position();
-    orientation_ = ns.attitude();
-    pose_ = gtsam::Pose3(orientation_, position_);
-    velocity_ = ns.v();
-    altitude_ = position_.z();
-    heading_ = orientation_.yaw();
-    gyro_ = gyro;
-    initialized_ = init;
+    timestamp_ = timestamp;
 }
 
 Odometry::Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, int64_t timestamp, bool init)
