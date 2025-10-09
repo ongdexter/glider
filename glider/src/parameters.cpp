@@ -27,9 +27,12 @@ Glider::Parameters::Parameters(const std::string& path)
         gravity = config["constants"]["gravity"].as<double>();
         lag_time = config["constants"]["lag_time"].as<double>();
         bias_num_measurements = config["constants"]["bias_num_measurements"].as<int>();
-        initial_num_measurements = config["constants"]["initial_num_measurements"].as<int>();
+        initial_num_measurements = config["constants"]["initial_num_measurements"].as<uint64_t>();
 
         frame = config["frame"]["imu"].as<std::string>();
+        
+        log = config["logging"]["stdout"].as<bool>(); 
+
         t_imu_gps(0) = config["gps_to_imu"]["x"].as<double>();
         t_imu_gps(1) = config["gps_to_imu"]["y"].as<double>();
         t_imu_gps(2) = config["gps_to_imu"]["z"].as<double>();

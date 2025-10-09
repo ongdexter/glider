@@ -31,7 +31,7 @@ class Glider
         
     private:
 
-        void initializeLogging() const;
+        void initializeLogging(const Parameters& params) const;
 
         FactorManager factor_manager_;
 

@@ -54,11 +54,11 @@ boost::shared_ptr<gtsam::PreintegrationCombinedParams> FactorManager::defaultImu
     boost::shared_ptr<gtsam::PreintegrationCombinedParams> params;
     if (params_.frame == "enu")
     {
-        params = gtsam::PreintegrationCombinedParams::MakeSharedD(g);
+        params = gtsam::PreintegrationCombinedParams::MakeSharedU(g);
     }
     else
     {
-        params = gtsam::PreintegrationCombinedParams::MakeSharedU(g);
+        params = gtsam::PreintegrationCombinedParams::MakeSharedD(g);
     }
     double gyro_sigma = (0.5 * M_PI / 180.0) / 60.0;
     double accel_sigma = 0.001;
@@ -162,8 +162,7 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
     gtsam::Rot3 rot = gtsam::Rot3::Quaternion(orient_(0), orient_(1), orient_(2), orient_(3));
 
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
-    // TODO how do we constrain orientation???
-    //graph_.add(gtsam::PriorFactor<gtsam::Rot3>(X(key_index_), rot, orient_noise_));
+    graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
 
     key_index_++;
 }

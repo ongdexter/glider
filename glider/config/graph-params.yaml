@@ -14,7 +14,6 @@ constants:
 frame:
   imu: "enu"
 logging:
-  enable: true
   stdout: true
 gps_to_imu:
   x: 0.0

@@ -29,7 +29,9 @@ struct Parameters
     double gravity;
     double lag_time; 
     int bias_num_measurements;
-    int initial_num_measurements;
+    uint64_t initial_num_measurements;
+
+    bool log;
 
     std::string frame;
 

@@ -12,9 +12,8 @@ namespace Glider
 
 Glider::Glider(const std::string& path) 
 {
-    initializeLogging();
-
     Parameters params = Parameters::Load(path);
+    initializeLogging(params);
     factor_manager_ = FactorManager(params);
 
     frame_ = params.frame;
@@ -24,11 +23,11 @@ Glider::Glider(const std::string& path)
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 
-void Glider::initializeLogging() const
+void Glider::initializeLogging(const Parameters& params) const
 {
     google::InitGoogleLogging("Glider");
     FLAGS_log_dir = "/home/jason/.ros/log/glider";
-    FLAGS_alsologtostderr = 1;
+    if (params.log) FLAGS_alsologtostderr = 1;
 }
 
 void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
@@ -69,7 +68,7 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     }
     else
     {
-        LOG(FATAL) << "IMU Frame, not supported use ENU or NED";
+        LOG(FATAL) << "[GLIDER] IMU Frame, not supported use ENU or NED";
     }
 }  
 
@@ -82,7 +81,7 @@ Odometry Glider::interpolate(int64_t timestamp)
     }
     catch (const std::exception& e)
     {
-        LOG(ERROR) << "Interpolation Error: " << e.what();
+        LOG(ERROR) << "[GLIDER] Interpolation Error: " << e.what();
         return Odometry::Uninitialized();
     }
 }
@@ -96,7 +95,7 @@ State Glider::optimize()
     }
     catch (const std::exception& e)
     {
-        LOG(ERROR) << "Optimization Error: " << e.what();
+        LOG(ERROR) << "[GLIDER] Optimization Error: " << e.what();
         return State::Uninitialized();
     }
 }
