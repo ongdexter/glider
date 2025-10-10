@@ -20,6 +20,7 @@ Glider::Glider(const std::string& path)
     t_imu_gps_ = params.t_imu_gps;
 
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
+    LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 

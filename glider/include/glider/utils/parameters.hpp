@@ -31,9 +31,11 @@ struct Parameters
     int bias_num_measurements;
     uint64_t initial_num_measurements;
 
+    std::string frame;
+
     bool log;
 
-    std::string frame;
+    bool smooth;
 
     Eigen::Vector3d t_imu_gps;
 };

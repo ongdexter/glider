@@ -10,11 +10,13 @@ constants:
   gravity: 9.81
   bias_num_measurements: 100
   initial_num_measurements: 4
-  lag_time: 10.0
 frame:
   imu: "enu"
 logging:
   stdout: true
+optimizer:
+  smooth: true
+  lag_time: 5.0
 gps_to_imu:
   x: 0.0
   y: 0.0

@@ -214,7 +214,16 @@ gtsam::Values FactorManager::optimize()
 {
     // TODO make this configurable between smoother and isam
     isam_.update(graph_, initials_);
-    gtsam::Values result = isam_.calculateEstimate();
+    gtsam::Values result;
+    if (params_.smooth)
+    {
+        smoother_.update(graph_, initials_, smoother_timestamps_);
+        result = smoother_.calculateEstimate();
+    }
+    else
+    {
+        result = isam_.calculateEstimate();
+    }
     optimized_count_++;
     if (optimized_count_ == params_.initial_num_measurements)
     {
@@ -235,9 +244,18 @@ State FactorManager::runner()
 
     last_state_ = current_state_;
 
-    // get the covariance from isam
-    gtsam::Matrix pose_cov = isam_.marginalCovariance(X(key_index_-1));
-    gtsam::Matrix vel_cov = isam_.marginalCovariance(V(key_index_-1));
+    // get the covariance from isam or the smoother
+    gtsam::Matrix pose_cov, vel_cov;
+    if (params_.smooth)
+    {
+        pose_cov = smoother_.marginalCovariance(X(key_index_-1));
+        vel_cov = smoother_.marginalCovariance(X(key_index_-1));
+    }
+    else
+    {
+        pose_cov = isam_.marginalCovariance(X(key_index_-1));
+        vel_cov = isam_.marginalCovariance(V(key_index_-1));
+    }
     // save the current state we just optimized for
     current_state_ = State(result, key_index_-1, pose_cov, vel_cov, true);
 
@@ -251,10 +269,7 @@ State FactorManager::runner()
     // we want to optimize a few times before
     // publishing to allow convergence
     // otherwise we return an unitialized state
-    if (!sys_initialized_)
-    {
-        return State::Uninitialized();
-    }
+    if (!sys_initialized_) return State::Uninitialized();
 
     return current_state_;
 }
