@@ -2,7 +2,9 @@
 * Jason Hughes
 * July 2025
 *
-* glider-mono parameters loaded from a yaml file.
+* Glider parameters loaded from a yaml file.
+* These parameters are for configuring the factor graph
+* and glider usage.
 */
 
 #include <Eigen/Dense>
@@ -14,30 +16,60 @@ namespace Glider
 
 struct Parameters
 {
+    /* @brief default constructor for Parameters
+    */
     Parameters() = default;
+    /* @brief main constructor that will load parameters from
+    *  yaml config file
+    *  @param path: path to the yaml file
+    */
     Parameters(const std::string& path);
+    /* @brief static method that calls the constructor to load
+    *  the parameters, for readability.
+    *  @param path: path to the yaml file
+    */
     static Parameters Load(const std::string& path);
 
+    // @brief accelerometer covariance of the IMU
     double accel_cov;
+    // @brief gyroscope covariance of the IMU
     double gyro_cov;
+    // @brief covariance of the compass of the IMU
+    double heading_cov;
+    // @brief covariance of the roll and pitch orientation
+    // estimate from the IMU
+    double roll_pitch_cov;
+    // @brief covariance of IMU integration
     double integration_cov;
+    // @brief covariance of the IMU's bias estimate
     double bias_cov;
-    double use_second_order;
-    double gravity;
+    // @brief covariance of the GPS position estimate
+    // TODO make this gps_cov to match 
     double gps_noise;
-    double heading_noise;
-    double odom_noise;
-    double lag_time; 
-    double odom_orientation_noise;
-    double odom_translation_noise;
-    double odom_scale_noise;
 
+    // @brief gravity as read from your IMU
+    double gravity;
+    // @brief number of IMU measurements to initially measure the IMUs bias
     int bias_num_measurements;
+    // @brief number of GPS measurements to add to and optimize over
+    // before we start publishing results
+    uint64_t initial_num_measurements;
 
+    // @brief the frame of the IMU, we only handle ENU and NED
     std::string frame;
 
-    bool scale_odom;
-    bool correct_imu;
+    // @brief if true this logs to stdout and log file otherwise it logs
+    // just to a file
+    bool log;
+
+    // @brief if true optimize using a fixed lag smoother, otherwise
+    // optimize with iSAM2
+    bool smooth;
+    // @brief amount of time in seconds for the fixed lag smoother to
+    // smooth over.
+    double lag_time; 
+
+    // @brief translation from the GPS to the IMU
     Eigen::Vector3d t_imu_gps;
 };
 }

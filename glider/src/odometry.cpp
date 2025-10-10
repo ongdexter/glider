@@ -11,23 +11,21 @@
 
 using namespace Glider;
 
-Odometry::Odometry(gtsam::Values& vals, gtsam::Key key_index, double scale, int64_t timestamp, bool init)
+Odometry::Odometry(gtsam::Values& vals, int64_t timestamp, gtsam::Key key, bool init)
 {
-    pose_ = vals.at<gtsam::Pose3>(X(key_index));
+    pose_ = vals.at<gtsam::Pose3>(X(key));
     orientation_ = pose_.rotation();
     position_ = pose_.translation();
-    velocity_ = vals.at<gtsam::Point3>(V(key_index));
+    velocity_ = vals.at<gtsam::Point3>(V(key));
 
     altitude_ = pose_.translation().z();
     heading_ = pose_.rotation().yaw();
    
     timestamp_ = timestamp;
     initialized_ = init;
-
-    scale_ = scale;
 }
 
-Odometry::Odometry(gtsam::NavState& ns, bool init)
+Odometry::Odometry(gtsam::NavState& ns, int64_t timestamp, bool init)
 {
     position_ = ns.position();
     orientation_ = ns.attitude();
@@ -35,30 +33,6 @@ Odometry::Odometry(gtsam::NavState& ns, bool init)
     velocity_ = ns.v();
     altitude_ = position_.z();
     heading_ = orientation_.yaw();
-    initialized_ = init;
-}
-
-Odometry::Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, bool init)
-{
-    position_ = ns.position();
-    orientation_ = ns.attitude();
-    pose_ = gtsam::Pose3(orientation_, position_);
-    velocity_ = ns.v();
-    altitude_ = position_.z();
-    heading_ = orientation_.yaw();
-    gyro_ = gyro;
-    initialized_ = init;
-}
-
-Odometry::Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, int64_t timestamp, bool init)
-{
-    position_ = ns.position();
-    orientation_ = ns.attitude();
-    pose_ = gtsam::Pose3(orientation_, position_);
-    velocity_ = ns.v();
-    altitude_ = position_.z();
-    heading_ = orientation_.yaw();
-    gyro_ = gyro;
     initialized_ = init;
     timestamp_ = timestamp;
 }
@@ -71,14 +45,6 @@ Odometry Odometry::Uninitialized()
     return odom;
 }
 
-void Odometry::offsetPose(double x, double y)
-{
-    double new_x = pose_.x() - x;
-    double new_y = pose_.y() - y;
-
-    pose_ = gtsam::Pose3(pose_.rotation(), gtsam::Point3(new_x, new_y, pose_.z()));
-}
-
 bool Odometry::isInitialized() const
 {
      return initialized_;
@@ -88,11 +54,6 @@ gtsam::NavState Odometry::getNavState() const
 {
     gtsam::NavState ns(pose_, velocity_);
     return ns;
-}
-
-double Odometry::getScale() const
-{
-    return scale_;
 }
 
 int64_t Odometry::getTimestamp() const
@@ -225,64 +186,6 @@ T Odometry::getOrientation() const
     }
 }
 
-template<typename T>
-T Odometry::getGyroscope() const
-{
-    if constexpr (std::is_same_v<T, gtsam::Vector3>)
-    {
-        gtsam::Vector3 v(gyro_.x(), gyro_.y(), gyro_.z());
-        return v;
-    }
-    else if constexpr (std::is_same_v<T, Eigen::Vector3d>)
-    {
-        return gyro_;
-    }
-    else
-    {
-        static_assert(std::is_same_v<T, gtsam::Vector3> ||
-                      std::is_same_v<T, Eigen::Vector3d>, 
-                      "unsupported type in Odometry::getGyroscope");
-    }
-}
-
-template<typename T>
-T Odometry::getPoseWithScale() const
-{
-    if constexpr (std::is_same_v<T, gtsam::Similarity3>)
-    {
-        gtsam::Similarity3 pose(orientation_, position_, scale_);
-        return pose;
-    }
-}
-
-template<typename T>
-T Odometry::getRelative() const
-{
-    if constexpr (std::is_same_v<T, gtsam::Similarity3>)
-    {
-        return sim_;
-    }   
-    else if constexpr (std::is_same_v<T, gtsam::Pose3>)
-    {
-        gtsam::Pose3 pose(sim_.rotation(), sim_.translation());
-        return pose;
-    }
-    else if constexpr (std::is_same_v<T, gtsam::Rot3>)
-    {
-        return sim_.rotation();
-    }
-    else if constexpr (std::is_same_v<T, gtsam::Point3>)
-    {
-        return sim_.translation();
-    }
-    else
-    {
-        static_assert(std::is_same_v<T, gtsam::Similarity3> ||
-                      std::is_same_v<T, gtsam::Rot3> ||
-                      std::is_same_v<T, gtsam::Point3>, "Unsupported type");
-    }
-}
-
 double Odometry::getLatitude(const char* zone)
 {
     double temp;
@@ -351,13 +254,3 @@ template gtsam::Rot3 Odometry::getOrientation<gtsam::Rot3>() const;
 template gtsam::Quaternion Odometry::getOrientation<gtsam::Quaternion>() const;
 template Eigen::Vector4d Odometry::getOrientation<Eigen::Vector4d>() const;
 template Eigen::Quaterniond Odometry::getOrientation<Eigen::Quaterniond>() const;
-
-template gtsam::Similarity3 Odometry::getPoseWithScale<gtsam::Similarity3>() const;
-
-template gtsam::Similarity3 Odometry::getRelative<gtsam::Similarity3>() const;
-template gtsam::Pose3 Odometry::getRelative<gtsam::Pose3>() const;
-template gtsam::Rot3 Odometry::getRelative<gtsam::Rot3>() const;
-template gtsam::Point3 Odometry::getRelative<gtsam::Point3>() const;
-
-template gtsam::Vector3 Odometry::getGyroscope<gtsam::Vector3>() const;
-//template Eigen::Vector3d Odometry::getGyroscope<Eigen::Vector3d>() const;

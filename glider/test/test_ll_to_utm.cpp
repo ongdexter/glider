@@ -23,7 +23,7 @@ TEST(ConversionTestSuite, LatLonToEasting)
     double easting, t0;
     char t1[4];
 
-    glider::geodetics::LLtoUTM(lat, lon, t0, easting, t1);
+    Glider::geodetics::LLtoUTM(lat, lon, t0, easting, t1);
     ASSERT_NEAR(easting, gt_easting, tolerance);
 }
 
@@ -32,20 +32,20 @@ TEST(ConversionTestSuite, LatLonToNorthing)
     double northing, t0;
     char t1[4];
 
-    glider::geodetics::LLtoUTM(lat, lon, northing, t0, t1);
+    Glider::geodetics::LLtoUTM(lat, lon, northing, t0, t1);
     ASSERT_NEAR(northing, gt_northing, tolerance);
 }
 
 TEST(ConversionTestSuite, UTMToLatitude)
 {
     double plat, temp;
-    glider::geodetics::UTMtoLL(gt_northing, gt_easting, zone, plat, temp);
+    Glider::geodetics::UTMtoLL(gt_northing, gt_easting, zone, plat, temp);
     ASSERT_NEAR(lat, plat, tolerance);
 }
 
 TEST(ConversionvTestSuite, UTMToLongitude)
 {
     double plon, temp;
-    glider::geodetics::UTMtoLL(gt_northing, gt_easting, zone, temp, plon);
+    Glider::geodetics::UTMtoLL(gt_northing, gt_easting, zone, temp, plon);
     ASSERT_NEAR(lon, plon, tolerance);
 }

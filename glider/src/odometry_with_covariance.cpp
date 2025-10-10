@@ -5,18 +5,17 @@
 * Struct to keep track of the robots state
 */
 
-#include "glider/core/state.hpp"
+#include "glider/core/odometry_with_covariance.hpp"
 #include "glider/core/odometry.hpp"
 #include "glider/utils/geodetics.hpp"
 
 using namespace Glider;
 
-State::State(gtsam::Values& vals, gtsam::Key key, double scale, gtsam::Matrix& pose_cov, gtsam::Matrix& velocity_cov, bool init) : Odometry(vals, key, scale, init)
+OdometryWithCovariance::OdometryWithCovariance(gtsam::Values& vals, int64_t timestamp, gtsam::Key key, gtsam::Matrix& pose_cov, gtsam::Matrix& velocity_cov, bool init) : Odometry(vals, timestamp, key, init)
 {
     gtsam::imuBias::ConstantBias bias = vals.at<gtsam::imuBias::ConstantBias>(B(key));
         
     key_index_ = key;
-    scale_ = scale;
     accelerometer_bias_ = bias.accelerometer();
     gyroscope_bias_ = bias.gyroscope();
 
@@ -29,31 +28,31 @@ State::State(gtsam::Values& vals, gtsam::Key key, double scale, gtsam::Matrix& p
     initialized_ = init;
 }
 
-State State::Uninitialized()
+OdometryWithCovariance OdometryWithCovariance::Uninitialized()
 {
-    State state;
-    state.setInitializedStatus(false);
+    OdometryWithCovariance odom;
+    odom.setInitializedStatus(false);
 
-    return state;
+    return odom;
 }
 
-Eigen::MatrixXd State::getPoseCovariance() const
+Eigen::MatrixXd OdometryWithCovariance::getPoseCovariance() const
 {
     return pose_covariance_;
 }
 
-Eigen::MatrixXd State::getPositionCovariance() const
+Eigen::MatrixXd OdometryWithCovariance::getPositionCovariance() const
 {
     return position_covariance_;
 }
 
-Eigen::MatrixXd State::getVelocityCovariance() const
+Eigen::MatrixXd OdometryWithCovariance::getVelocityCovariance() const
 {
     return velocity_covariance_;
 }
 
 template<typename T>
-T State::getBias() const
+T OdometryWithCovariance::getBias() const
 {
     if constexpr (std::is_same_v<T, gtsam::imuBias::ConstantBias>)
     {
@@ -75,7 +74,7 @@ T State::getBias() const
 
 // make the typing explicit on the gtsam::Vector3
 template<typename T>
-T State::getAccelerometerBias() const
+T OdometryWithCovariance::getAccelerometerBias() const
 {
     if constexpr (std::is_same_v<T, gtsam::Vector3>)
     {
@@ -94,7 +93,7 @@ T State::getAccelerometerBias() const
 }
 
 template<typename T>
-T State::getGyroscopeBias() const
+T OdometryWithCovariance::getGyroscopeBias() const
 {
     if constexpr (std::is_same_v<T, gtsam::Vector3>)
     {
@@ -113,7 +112,7 @@ T State::getGyroscopeBias() const
 }
 
 template<typename T>
-T State::getKeyIndex() const
+T OdometryWithCovariance::getKeyIndex() const
 {
     if constexpr (std::is_same_v<T, gtsam::Key>)
     {
@@ -126,7 +125,7 @@ T State::getKeyIndex() const
     }
 }
 
-std::string State::getKeyIndex(const char* symbol)
+std::string OdometryWithCovariance::getKeyIndex(const char* symbol)
 {
     if (std::strcmp(symbol,"x") || std::strcmp(symbol,"X"))
     {
@@ -147,17 +146,17 @@ std::string State::getKeyIndex(const char* symbol)
 }
 
 
-bool State::isMoving() const
+bool OdometryWithCovariance::isMoving() const
 {
     return is_moving_;
 }
 
 
-template gtsam::imuBias::ConstantBias State::getBias<gtsam::imuBias::ConstantBias>() const;
-template std::pair<Eigen::Vector3d, Eigen::Vector3d> State::getBias<std::pair<Eigen::Vector3d,Eigen::Vector3d>>() const;
+template gtsam::imuBias::ConstantBias OdometryWithCovariance::getBias<gtsam::imuBias::ConstantBias>() const;
+template std::pair<Eigen::Vector3d, Eigen::Vector3d> OdometryWithCovariance::getBias<std::pair<Eigen::Vector3d,Eigen::Vector3d>>() const;
 
-template gtsam::Vector3 State::getAccelerometerBias<gtsam::Vector3>() const;
-template gtsam::Vector3 State::getGyroscopeBias<gtsam::Vector3>() const;
+template gtsam::Vector3 OdometryWithCovariance::getAccelerometerBias<gtsam::Vector3>() const;
+template gtsam::Vector3 OdometryWithCovariance::getGyroscopeBias<gtsam::Vector3>() const;
 
-template gtsam::Key State::getKeyIndex<gtsam::Key>() const;
-template int State::getKeyIndex<int>() const;
+template gtsam::Key OdometryWithCovariance::getKeyIndex<gtsam::Key>() const;
+template int OdometryWithCovariance::getKeyIndex<int>() const;

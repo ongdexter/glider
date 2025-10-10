@@ -18,7 +18,7 @@
 #include <Eigen/Dense>
 
 #include "glider/core/odometry.hpp"
-#include "glider/core/state.hpp"
+#include "glider/core/odometry_with_covariance.hpp"
 
 namespace GliderROS
 {
@@ -37,10 +37,10 @@ class Conversions
         static Output odomToRos(Glider::Odometry& odom, const char* zone = nullptr);
 
         template<typename Output>
-        static Output stateToRos(Glider::State& state, const char* zone = nullptr);
+        static Output odomToRos(Glider::OdometryWithCovariance& odom_wc, const char* zone = nullptr);
 
         template<typename T>
-        static void addCovariance(const Glider::State& state, T& msg);
+        static void addCovariance(const Glider::OdometryWithCovariance& odom_wc, T& msg);
 
         static std::chrono::milliseconds hzToDuration(const double freq);
 
@@ -63,8 +63,6 @@ class Conversions
             static geometry_msgs::msg::PoseStamped poseConvert(const Eigen::Isometry3d& vec);
 
             static sensor_msgs::msg::NavSatFix gpsConvert(const Eigen::Vector3d& gps);
-
-            static sensor_msgs::msg::PointCloud2 pointCloudConvert(const Eigen::Array3Xd& vec);
         };
 
         static std_msgs::msg::Header getHeader(int64_t timestamp, std::string frame);

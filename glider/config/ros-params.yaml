@@ -1,11 +1,11 @@
 glider_node:
   ros__parameters:
-    rate: 100.0
-    use_odom: false
-    viz: true
-    publish_nav_sat_fix: false
-    utm_zone: "18S"
-    declination: 11.82
-    origin_easting: 482933.2819920078
-    origin_northing: 4421345.135559781
-    gps_init_count: 10
+    publishers:
+      rate: 100.0
+      nav_sat_fix: false
+      viz:
+        use: true
+        origin_easting: 482933.2819920078
+        origin_northing: 4421345.135559781
+    subscribers:
+      use_odom: false

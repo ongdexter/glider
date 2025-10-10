@@ -39,7 +39,7 @@ RUN sudo apt-get install -y python3-colcon-common-extensions
 # install visualizer deps
 RUN sudo apt-get install -y python3-pip
 RUN pip3 install flask folium flask_socketio utm
-
+RUN sudo apt install -y libgoogle-glog-dev
 # build ros env
 RUN mkdir ws
 

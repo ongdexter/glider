@@ -1,0 +1,23 @@
+covariances:
+  accelerometer: 0.00001
+  gyroscope: 0.00001
+  integration: 0.001
+  heading: 0.09 
+  roll_pitch: 0.001
+  bias: 0.001
+  gps: 2.0
+constants:
+  gravity: 9.81
+  bias_num_measurements: 100
+  initial_num_measurements: 4
+frame:
+  imu: "enu"
+logging:
+  stdout: true
+optimizer:
+  smooth: true
+  lag_time: 5.0
+gps_to_imu:
+  x: 0.0
+  y: 0.0
+  z: 0.0

@@ -17,7 +17,7 @@
 
 #include "glider/core/glider.hpp"
 #include "glider/core/odometry.hpp"
-#include "glider/core/state.hpp"
+#include "glider/core/odometry_with_covariance.hpp"
 
 #include "ros/conversions.hpp"
 
@@ -44,6 +44,11 @@ class GliderNode : public rclcpp::Node
 
         // utility functions
         int64_t getTime(const builtin_interfaces::msg::Time& stamp) const;
+        void publishOdometry(Glider::OdometryWithCovariance& state) const;
+        void publishOdometry(Glider::Odometry& odom) const;
+        void publishNavSatFix(Glider::OdometryWithCovariance& state) const;
+        void publishNavSatFix(Glider::Odometry& odom) const;
+        void publishOdometryViz(nav_msgs::msg::Odometry viz_msg) const;
 
         // subscriptions
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::ConstSharedPtr gps_sub_;
@@ -77,7 +82,7 @@ class GliderNode : public rclcpp::Node
         int gps_init_count_;
 
         // tracker
-        Glider::State current_state_;
+        Glider::OdometryWithCovariance current_state_;
 
         int64_t latest_imu_timestamp_;
 };
