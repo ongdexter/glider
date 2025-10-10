@@ -27,7 +27,7 @@ class Glider
         void addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
 
         Odometry interpolate(int64_t timestamp);
-        State optimize();
+        OdometryWithCovariance optimize();
         
     private:
 

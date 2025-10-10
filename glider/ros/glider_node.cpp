@@ -39,7 +39,7 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     latest_imu_timestamp_ = 0;
 
     glider_ = std::make_unique<Glider::Glider>(path);
-    current_state_ = Glider::State::Uninitialized();
+    current_state_ = Glider::OdometryWithCovariance::Uninitialized();
 
     imu_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     gps_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -137,9 +137,9 @@ void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
     //glider_->addOdom(timestamp, pose);
 }
 
-void GliderNode::publishOdometry(Glider::State& state) const
+void GliderNode::publishOdometry(Glider::OdometryWithCovariance& state) const
 {
-    nav_msgs::msg::Odometry msg = GliderROS::Conversions::stateToRos<nav_msgs::msg::Odometry>(state);
+    nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(state);
     odom_pub_->publish(msg);
     
     if (viz_) publishOdometryViz(msg);
@@ -154,10 +154,10 @@ void GliderNode::publishOdometry(Glider::Odometry& odom) const
     if (viz_) publishOdometryViz(msg);
 }
 
-void GliderNode::publishNavSatFix(Glider::State& state) const
+void GliderNode::publishNavSatFix(Glider::OdometryWithCovariance& state) const
 {
     // TODO add covariance
-    sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::stateToRos<sensor_msgs::msg::NavSatFix>(state);
+    sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(state);
     gps_pub_->publish(msg);
 }
 

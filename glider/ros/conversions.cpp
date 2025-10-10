@@ -216,7 +216,7 @@ Output Conversions::odomToRos(Glider::Odometry& odom, const char* zone)
 }
 
 template<typename Output>
-Output Conversions::stateToRos(Glider::State& state, const char* zone)
+Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, const char* zone)
 {
     if constexpr (std::is_same_v<Output, sensor_msgs::msg::NavSatFix>)
     {
@@ -227,13 +227,13 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
         }
         else
         {
-            std::pair<double, double> latlon = state.getLatLon(zone);
+            std::pair<double, double> latlon = odom_wc.getLatLon(zone);
 
             msg.latitude = latlon.first;
             msg.longitude = latlon.second;
-            msg.altitude = state.getAltitude();
+            msg.altitude = odom_wc.getAltitude();
             msg.position_covariance_type = 3;
-            Eigen::Matrix3d cov = state.getPositionCovariance();
+            Eigen::Matrix3d cov = odom_wc.getPositionCovariance();
             for (int i = 0; i < cov.rows(); ++i) 
             {
                 for (int j = 0; j < cov.cols(); ++j) 
@@ -241,7 +241,7 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
                     msg.position_covariance[i * 3 + j] = cov(i, j);
                 }
             }
-            msg.header = getHeader(state.getTimestamp(), "enu");
+            msg.header = getHeader(odom_wc.getTimestamp(), "enu");
         }
         return msg;
     }
@@ -249,18 +249,18 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
     {
         nav_msgs::msg::Odometry msg;
 
-        Eigen::Vector3d p = state.getPosition<Eigen::Vector3d>();
+        Eigen::Vector3d p = odom_wc.getPosition<Eigen::Vector3d>();
         msg.pose.pose.position.x = p(0);
         msg.pose.pose.position.y = p(1);
         msg.pose.pose.position.z = p(2);
 
-        Eigen::Quaterniond q = state.getOrientation<Eigen::Quaterniond>();
+        Eigen::Quaterniond q = odom_wc.getOrientation<Eigen::Quaterniond>();
         msg.pose.pose.orientation.w = q.w();
         msg.pose.pose.orientation.x = q.x();
         msg.pose.pose.orientation.y = q.y();
         msg.pose.pose.orientation.z = q.z();
 
-        Eigen::MatrixXd cov = state.getPoseCovariance();
+        Eigen::MatrixXd cov = odom_wc.getPoseCovariance();
         for (int i = 0; i < cov.rows(); ++i) 
         {
             for (int j = 0; j < cov.cols(); ++j) 
@@ -269,13 +269,13 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
             }
         }
 
-        Eigen::Vector3d v = state.getVelocity<Eigen::Vector3d>();
+        Eigen::Vector3d v = odom_wc.getVelocity<Eigen::Vector3d>();
 
         msg.twist.twist.linear.x = v(0);
         msg.twist.twist.linear.y = v(1);
         msg.twist.twist.linear.z = v(2);
         
-        cov = state.getVelocityCovariance();
+        cov = odom_wc.getVelocityCovariance();
         for (int i = 0; i < cov.rows(); ++i) 
         {
             for (int j = 0; j < cov.cols(); ++j) 
@@ -283,7 +283,7 @@ Output Conversions::stateToRos(Glider::State& state, const char* zone)
                 msg.twist.covariance[i * cov.rows() + j] = cov(i, j);
             }
         }
-        msg.header = getHeader(state.getTimestamp(), "enu");
+        msg.header = getHeader(odom_wc.getTimestamp(), "enu");
         return msg;
     }
     else
@@ -308,11 +308,11 @@ std::chrono::milliseconds Conversions::hzToDuration(double freq)
 }
 
 template<typename T>
-void Conversions::addCovariance(const Glider::State& state, T& msg)
+void Conversions::addCovariance(const Glider::OdometryWithCovariance& odom_wc, T& msg)
 {
     if constexpr (std::is_same_v<T, sensor_msgs::msg::NavSatFix>)
     {
-        Eigen::Matrix3d cov = state.getPositionCovariance();
+        Eigen::Matrix3d cov = odom_wc.getPositionCovariance();
         for (int i = 0; i < cov.rows(); ++i) 
         {
             for (int j = 0; j < cov.cols(); ++j) 
@@ -323,7 +323,7 @@ void Conversions::addCovariance(const Glider::State& state, T& msg)
     }
     else if constexpr (std::is_same_v<T, nav_msgs::msg::Odometry>)
     { 
-        Eigen::MatrixXd cov = state.getPoseCovariance();
+        Eigen::MatrixXd cov = odom_wc.getPoseCovariance();
         for (int i = 0; i < cov.rows(); ++i) 
         {
             for (int j = 0; j < cov.cols(); ++j) 
@@ -331,7 +331,7 @@ void Conversions::addCovariance(const Glider::State& state, T& msg)
                 msg.pose.covariance[i * cov.rows() + j] = cov(i, j);
             }
         }
-        cov = state.getVelocityCovariance();
+        cov = odom_wc.getVelocityCovariance();
         for (int i = 0; i < cov.rows(); ++i) 
         {
             for (int j = 0; j < cov.cols(); ++j) 
@@ -361,8 +361,8 @@ template geometry_msgs::msg::PoseStamped Conversions::eigenToRos<geometry_msgs::
 template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::Odometry& odom, const char* zone);
 template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::Odometry& odom, const char* zone);
 
-template nav_msgs::msg::Odometry Conversions::stateToRos<nav_msgs::msg::Odometry>(Glider::State& state, const char* zone);
-template sensor_msgs::msg::NavSatFix Conversions::stateToRos<sensor_msgs::msg::NavSatFix>(Glider::State& state, const char* zone);
+template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::OdometryWithCovariance& odom_wc, const char* zone);
+template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::OdometryWithCovariance& odom_wc, const char* zone);
 
-template void Conversions::addCovariance<nav_msgs::msg::Odometry>(const Glider::State& state, nav_msgs::msg::Odometry& msg);
-template void Conversions::addCovariance<sensor_msgs::msg::NavSatFix>(const Glider::State& state, sensor_msgs::msg::NavSatFix& msg);
+template void Conversions::addCovariance<nav_msgs::msg::Odometry>(const Glider::OdometryWithCovariance& odom_wc, nav_msgs::msg::Odometry& msg);
+template void Conversions::addCovariance<sensor_msgs::msg::NavSatFix>(const Glider::OdometryWithCovariance& odom_wc, sensor_msgs::msg::NavSatFix& msg);

@@ -26,7 +26,7 @@
 #include <gtsam/navigation/NavState.h>
 #include <gtsam/slam/InitializePose3.h>
 
-#include "state.hpp"
+#include "odometry_with_covariance.hpp"
 #include "odometry.hpp"
 #include "glider/utils/parameters.hpp"
 #include "glider/utils/time.hpp"
@@ -57,7 +57,7 @@ class FactorManager
         
         // state predictors
         Odometry predict(int64_t timestamp); 
-        State runner();
+        OdometryWithCovariance runner();
 
         // measurements adders
         void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
@@ -118,8 +118,8 @@ class FactorManager
         double last_gps_time_;
 
         // track states
-        State current_state_;
-        State last_state_;
+        OdometryWithCovariance current_state_;
+        OdometryWithCovariance last_state_;
 
         // initial state
         gtsam::Rot3 initial_orientation_;

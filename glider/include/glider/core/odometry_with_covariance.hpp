@@ -27,14 +27,14 @@ namespace Glider
 {
 
 
-class State : public Odometry
+class OdometryWithCovariance : public Odometry
 {
     public:
-        State() = default;
-        State(gtsam::Values& val, gtsam::Key key, gtsam::Matrix& pose_cov, gtsam::Matrix& velocity_cov, bool initialized = true);
-        State(gtsam::Values& val, bool initialized = true);
+        OdometryWithCovariance() = default;
+        OdometryWithCovariance(gtsam::Values& val, gtsam::Key key, gtsam::Matrix& pose_cov, gtsam::Matrix& velocity_cov, bool initialized = true);
+        OdometryWithCovariance(gtsam::Values& val, bool initialized = true);
         
-        static State Uninitialized();
+        static OdometryWithCovariance Uninitialized();
 
         template<typename T>
         T getBias() const;

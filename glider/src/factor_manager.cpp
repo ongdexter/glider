@@ -234,11 +234,11 @@ gtsam::Values FactorManager::optimize()
     return result;
 }
 
-State FactorManager::runner() 
+OdometryWithCovariance FactorManager::runner() 
 {
     // if the graph or imu is not initialized we cannot optimize
     // so we return an uninitialized state
-    if (!imu_initialized_ || !gps_initialized_) return State::Uninitialized();
+    if (!imu_initialized_ || !gps_initialized_) return OdometryWithCovariance::Uninitialized();
 
     gtsam::Values result = optimize();
 
@@ -257,7 +257,7 @@ State FactorManager::runner()
         vel_cov = isam_.marginalCovariance(V(key_index_-1));
     }
     // save the current state we just optimized for
-    current_state_ = State(result, key_index_-1, pose_cov, vel_cov, true);
+    current_state_ = OdometryWithCovariance(result, key_index_-1, pose_cov, vel_cov, true);
 
     // reset the pim
     pim_->resetIntegration();
@@ -269,7 +269,7 @@ State FactorManager::runner()
     // we want to optimize a few times before
     // publishing to allow convergence
     // otherwise we return an unitialized state
-    if (!sys_initialized_) return State::Uninitialized();
+    if (!sys_initialized_) return OdometryWithCovariance::Uninitialized();
 
     return current_state_;
 }

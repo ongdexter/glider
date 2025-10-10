@@ -87,17 +87,17 @@ Odometry Glider::interpolate(int64_t timestamp)
     }
 }
 
-State Glider::optimize()
+OdometryWithCovariance Glider::optimize()
 {
     try
     {   
-        State state = factor_manager_.runner();
+        OdometryWithCovariance state = factor_manager_.runner();
         return state;
     }
     catch (const std::exception& e)
     {
         LOG(ERROR) << "[GLIDER] Optimization Error: " << e.what();
-        return State::Uninitialized();
+        return OdometryWithCovariance::Uninitialized();
     }
 }
 }

@@ -37,19 +37,6 @@ Odometry::Odometry(gtsam::NavState& ns, int64_t timestamp, bool init)
     timestamp_ = timestamp;
 }
 
-Odometry::Odometry(gtsam::NavState& ns, Eigen::Vector3d& gyro, int64_t timestamp, bool init)
-{
-    position_ = ns.position();
-    orientation_ = ns.attitude();
-    pose_ = gtsam::Pose3(orientation_, position_);
-    velocity_ = ns.v();
-    altitude_ = position_.z();
-    heading_ = orientation_.yaw();
-    gyro_ = gyro;
-    initialized_ = init;
-    timestamp_ = timestamp;
-}
-
 Odometry Odometry::Uninitialized()
 {
     Odometry odom;
@@ -199,26 +186,6 @@ T Odometry::getOrientation() const
     }
 }
 
-template<typename T>
-T Odometry::getGyroscope() const
-{
-    if constexpr (std::is_same_v<T, gtsam::Vector3>)
-    {
-        gtsam::Vector3 v(gyro_.x(), gyro_.y(), gyro_.z());
-        return v;
-    }
-    else if constexpr (std::is_same_v<T, Eigen::Vector3d>)
-    {
-        return gyro_;
-    }
-    else
-    {
-        static_assert(std::is_same_v<T, gtsam::Vector3> ||
-                      std::is_same_v<T, Eigen::Vector3d>, 
-                      "unsupported type in Odometry::getGyroscope");
-    }
-}
-
 double Odometry::getLatitude(const char* zone)
 {
     double temp;
@@ -287,5 +254,3 @@ template gtsam::Rot3 Odometry::getOrientation<gtsam::Rot3>() const;
 template gtsam::Quaternion Odometry::getOrientation<gtsam::Quaternion>() const;
 template Eigen::Vector4d Odometry::getOrientation<Eigen::Vector4d>() const;
 template Eigen::Quaterniond Odometry::getOrientation<Eigen::Quaterniond>() const;
-
-template gtsam::Vector3 Odometry::getGyroscope<gtsam::Vector3>() const;
