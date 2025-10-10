@@ -1,6 +1,9 @@
 /*
-* April 2025
-* Manage the Factor Graph
+ * Jason Hughes
+ * April 2025
+ *
+ * This manages everything with the factor graph. It adds measurements, 
+ * runs the optimization with the smoother or isam and predicts with the pim
 */
 
 #pragma once
@@ -52,81 +55,151 @@ class FactorManager
 {
     public:
         // Constructos
+        /*! @brief default constructor */
         FactorManager() = default;
+        /*! @brief constructor that initalizes all parameters in the 
+         * factor manager
+         * @param params: the parameters loaded from the yaml file*/
         FactorManager(const Parameters& params);    
         
         // state predictors
+        /*! @brief calls the pim predict method
+         *  @param timestamp: the time at which this method is being called
+         *  @return the odometry from the pim prediction */
         Odometry predict(int64_t timestamp); 
+        /*! @brief the runner takes care of everything with the optimization, it calls the
+         *  optimizer, and resets everything after optimization is done
+         *  @param timestamp: time at which the runner is called
+         *  @return the odometry from the optimization over the graph with covariance
+         *  estimates from the optimizer */
         OdometryWithCovariance runner(int64_t timestamp);
 
         // measurements adders
+        /*! @brief adds the gps measurement and pim to the factor graph
+         *  @param timestamp: time of the gps measurement
+         *  @param gps: GPS measurement in the UTM frame */
         void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
+        /*! @brief adds the imu measurements to the pim and saves the orientation
+         *  @param timestamp: time of the imu measurement 
+         *  @param accel: the accelerometer reading
+         *  @param gyro: gyroscopre reading
+         *  @param orient: orientation in quaternion (w,x,y,z) format */
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
 
-        // getters and checkers 
+        // getters and checkers
+        /*! @brief gets the complete factor graph */
         gtsam::ExpressionFactorGraph getGraph();
+        /*! @brief checks if the imu has been initialized 
+         *  @return true if imu bias calibration is complete else false*/
         bool isImuInitialized() const;
+        /*! @brief checks if the gps is initialized
+         *  @return true if the gps reading has been added to the graph else false */
         bool isGpsInitialized() const;
+        /*! @brief checks if the odometry system is initialized 
+         *  @return true if graph has been optimized more than specified
+         *  number of times else false */
         bool isSystemInitialized() const;
+        /*! @brief gets the matrix used for bias estimation 
+         *  @return 6-by-bias_num_measurements matrix */
         Eigen::MatrixXd getBiasEstimate() const;
+        /*! @brief gets the current pim object 
+         *  @return the current pim object dereferenced */
         gtsam::PreintegratedCombinedMeasurements getPim() const;
+        /*! @brief gets the key index 
+         *  @return the current key index */
         gtsam::Key getKeyIndex() const;
 
     private: 
+        /*! @brief handles the optimization call with the specified 
+         *  optimizer, either isam or fixed lag smoother 
+         *  @return the output estimates from the optimization */
         gtsam::Values optimize();
         
+        /*! @brief initializes all the parameters for the pim 
+         *  @param g: gravity as defined in the yaml config
+         *  @return pim parameters as a shared_ptr */
         boost::shared_ptr<gtsam::PreintegrationCombinedParams> defaultImuParams(double g);
         
+        /*! @brief helper function that sets initial values in the graph */
         void initializeGraph();
+        /*! @brief estiamtes the bias using the specified number of measurements 
+         *  up initialization, and saves the orientation as the initial orientation
+         *  @param accel_meas: accelerometer measurement 
+         *  @param gytro_meas: gytroscop measurement
+         *  @param orient: the 3D orientation of the robot as a quaternion from the imu*/
         void initializeImu(const Eigen::Vector3d& accel_meas, const Eigen::Vector3d& gyro_meas, const Eigen::Vector4d& orient);
 
+        // @brief a mutex to use accross function that access the pim 
+        // as the pim could be accessd by multiple threads
         static std::mutex mutex_;
 
         // parameters
-        std::map<std::string, Eigen::MatrixXd> matrix_config_;
+        // @brief parameters for the isam2 optimizer  
         gtsam::ISAM2Params isam_params_;
+        // @brief parameters for the pim 
         boost::shared_ptr<gtsam::PreintegrationCombinedParams> imu_params_;
+        // @brief parameters set in the config file
         Parameters params_;
 
         // IMU
+        // @brief number of measurements used in initialization so far
+        // stops incrementing when it reaches bias_num_measurements
         int init_counter_;
+        // @brief saves the orientation from the imu
         Eigen::Vector4d orient_;
+        // @brief a gravity vector (0,0,+/-9.81) depending on frame
         Eigen::Vector3d gravity_vec_;
+        // @brief 6-by-bias_num_measurements matrix to store measurements
+        // from accel and gyro to measurem bias
         Eigen::MatrixXd bias_estimate_vec_;
         
+        // @brief saves the bias estimate from gtsam optimization
         gtsam::imuBias::ConstantBias bias_;
+        // @brief the pim for imu measurements
         std::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
 
         // noise
+        // @brief noise on the prior estimate 
         gtsam::noiseModel::Isotropic::shared_ptr prior_noise_;
+        // @brief noise on the gps position estimate
         gtsam::noiseModel::Isotropic::shared_ptr gps_noise_;
+        // @brief noise in the orientation estimate from the imu
         gtsam::noiseModel::Base::shared_ptr orient_noise_;
 
         // factor graph
+        // @brief tracks the number of times the optimizer has been called
         uint64_t optimized_count_;
+        // @brief the factor graph
         gtsam::ExpressionFactorGraph graph_;
+        // @breif stores all initial values for the optimizer
         gtsam::Values initials_;
+        // @brief the current key index of the factor graph
         gtsam::Key key_index_;
+        // @brief the fixed lag smoother optimizer
         gtsam::IncrementalFixedLagSmoother smoother_;
+        // @brief the timestamp tracker for the fixed lag smoother
         gtsam::FixedLagSmoother::KeyTimestampMap smoother_timestamps_;
+        // @brief the isam2 optimizer, can be used in lue of the smoother
         gtsam::ISAM2 isam_;
 
-        // previous state
-        Eigen::Vector3d last_gps_;
-        gtsam::Matrix last_marginal_covariance_;
+        // @brief the timestamp of the previous imu measurement
         double last_imu_time_;
-        double last_gps_time_;
 
         // track states
+        // @brief the current state estimate from the optimizer
         OdometryWithCovariance current_state_;
-        OdometryWithCovariance last_state_;
 
         // initial state
+        // @brief the initial orientation from the IMU
         gtsam::Rot3 initial_orientation_;
 
         // initialization
+        // @brief tracks odometry system initializtion
+        // true when we optimize more than the specified number of times
         bool sys_initialized_;
+        // @param tracks if the imu bias estimate is complete
         bool imu_initialized_;
+        // @param tracks if a gps measurement has been received
         bool gps_initialized_;
 };
 }

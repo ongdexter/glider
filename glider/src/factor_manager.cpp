@@ -106,13 +106,8 @@ void FactorManager::initializeGraph()
 
 void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps) 
 {
-    if (!imu_initialized_)
-    {
-        // TODO why am I saving this??
-        last_gps_ = gps;
-        last_gps_time_ = nanosecIntToDouble(timestamp);
-        return;
-    }
+    // wait until the imu is initialized
+    if (!imu_initialized_) return;
     
     double time = nanosecIntToDouble(timestamp);
 
@@ -146,24 +141,30 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
         return;
     }
    
+    // add the pim to the graph under a mutex
     std::unique_lock<std::mutex> lock(mutex_);
     graph_.add(gtsam::CombinedImuFactor(X(key_index_-1), V(key_index_-1), X(key_index_), V(key_index_), B(key_index_-1), B(key_index_), *pim_));
     lock.unlock();
 
+    // insert new initial values
     initials_.insert(X(key_index_), current_state_.getPose<gtsam::Pose3>());
     initials_.insert(V(key_index_), current_state_.getVelocity<gtsam::Vector3>());
     initials_.insert(B(key_index_), bias_);
 
+    // save the time for the smoother
     smoother_timestamps_[X(key_index_)] = time;
     smoother_timestamps_[V(key_index_)] = time;
     smoother_timestamps_[B(key_index_)] = time;
     
+    // convert eigen to gtsam
     gtsam::Point3 meas(gps(0), gps(1), gps(2));
     gtsam::Rot3 rot = gtsam::Rot3::Quaternion(orient_(0), orient_(1), orient_(2), orient_(3));
 
+    // add measurements to factor graph
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
     graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
 
+    // increment key index
     key_index_++;
 }
 
@@ -176,7 +177,7 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
         initializeImu(accel, gyro, orient);
         return;
     }
-    // if the imu IS initialzied we want to add measurements to the pim
+    // if the imu is initialzied we want to add measurements to the pim
     double current_time = nanosecIntToDouble(timestamp);
     double dt = current_time - last_imu_time_;
     if (dt <= 0.0)
@@ -212,9 +213,9 @@ Odometry FactorManager::predict(int64_t timestamp)
 
 gtsam::Values FactorManager::optimize() 
 {
-    // TODO make this configurable between smoother and isam
     isam_.update(graph_, initials_);
     gtsam::Values result;
+    // call the specified optimizer
     if (params_.smooth)
     {
         smoother_.update(graph_, initials_, smoother_timestamps_);
@@ -225,6 +226,7 @@ gtsam::Values FactorManager::optimize()
         result = isam_.calculateEstimate();
     }
     optimized_count_++;
+    // if weve optimized the specified number of times, initialize the system
     if (optimized_count_ == params_.initial_num_measurements)
     {
         LOG(INFO) << "[GLIDER] System Initialized";
@@ -241,8 +243,6 @@ OdometryWithCovariance FactorManager::runner(int64_t timestamp)
     if (!imu_initialized_ || !gps_initialized_) return OdometryWithCovariance::Uninitialized();
 
     gtsam::Values result = optimize();
-
-    last_state_ = current_state_;
 
     // get the covariance from isam or the smoother
     gtsam::Matrix pose_cov, vel_cov;
