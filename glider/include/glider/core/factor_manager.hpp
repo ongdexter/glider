@@ -57,7 +57,7 @@ class FactorManager
         
         // state predictors
         Odometry predict(int64_t timestamp); 
-        OdometryWithCovariance runner();
+        OdometryWithCovariance runner(int64_t timestamp);
 
         // measurements adders
         void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);

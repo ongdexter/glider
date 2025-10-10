@@ -22,7 +22,6 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
 
     // Get parameters
     double freq = this->get_parameter("publishers.rate").as_double();
-    RCLCPP_INFO_STREAM(this->get_logger(), "Using prediction rate: " << freq);
 
     publish_nsf_ = this->get_parameter("publishers.nav_sat_fix").as_bool();
     viz_ = this->get_parameter("publishers.viz.use").as_bool();
@@ -30,10 +29,8 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     origin_northing_ = this->get_parameter("publishers.viz.origin_northing").as_double();
 
     bool use_odom = this->get_parameter("subscribers.use_odom").as_bool();
-    RCLCPP_INFO_STREAM(this->get_logger(), "Fusing Odometry: " << std::boolalpha << use_odom);
     
     std::string path = this->get_parameter("path").as_string();
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "Loading graph params from: " << path);
     use_sim_time_ = this->get_clock()->get_clock_type() == RCL_ROS_TIME;
 
     latest_imu_timestamp_ = 0;
@@ -65,25 +62,27 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
 
     if (publish_nsf_)
     {
-        RCLCPP_INFO(this->get_logger(), "Publishing NavSatFix msg on /glider/fix");
+        LOG(INFO) << "[GLIDER] Publishing NavSatFix msg on /glider/fix";
+        LOG(INFO) << "[GLIDER] Using prediction rate: " << freq;
         gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("/glider/fix", 10);
     }
     else
     {
-        RCLCPP_INFO(this->get_logger(), "Publishing Odometry msg on /glider/odom");
+        LOG(INFO) << "[GLIDER] Publishing Odometry msg on /glider/odom";
+        LOG(INFO) << "[GLIDER] Using prediction rate: " << freq;
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom", 10);
     }
 
     if(viz_)
     {
-        RCLCPP_INFO(this->get_logger(), "Publishing Odometry Viz message on /glider/odom/viz");
+        LOG(INFO) << "[GLIDER] Publishing Odometry Viz message on /glider/odom/viz";
         odom_viz_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom/viz", 10);
     }
 
     // TODO add in predictor
     std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
     timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
-    RCLCPP_INFO(this->get_logger(), "GliderNode Initialized");
+    LOG(INFO) << "[GLIDER] GliderNode Initialized";
 }
 
 int64_t GliderNode::getTime(const builtin_interfaces::msg::Time& stamp) const
@@ -103,6 +102,7 @@ void GliderNode::interpolationCallback()
 
 void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 {
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Recieved IMU measurement";
     Eigen::Vector3d gyro = GliderROS::Conversions::rosToEigen<Eigen::Vector3d>(msg->angular_velocity);
     Eigen::Vector3d accel = GliderROS::Conversions::rosToEigen<Eigen::Vector3d>(msg->linear_acceleration);
     Eigen::Vector4d orient = GliderROS::Conversions::rosToEigen<Eigen::Vector4d>(msg->orientation);
@@ -115,16 +115,16 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 
 void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
 {
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Recieved GPS measurement";
     Eigen::Vector3d gps = GliderROS::Conversions::rosToEigen<Eigen::Vector3d>(*msg);
 
     int64_t timestamp = getTime(msg->header.stamp);
 
     glider_->addGps(timestamp, gps);
 
-    current_state_ = glider_->optimize();
+    current_state_ = glider_->optimize(timestamp);
     if (current_state_.isInitialized())
     {
-        RCLCPP_INFO(get_logger(), "Publishing Odom");
         (publish_nsf_) ? publishNavSatFix(current_state_) : publishOdometry(current_state_);
     }
 }
@@ -139,6 +139,7 @@ void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
 
 void GliderNode::publishOdometry(Glider::OdometryWithCovariance& state) const
 {
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Publishing Odometry from optimzation";
     nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(state);
     odom_pub_->publish(msg);
     
@@ -147,6 +148,7 @@ void GliderNode::publishOdometry(Glider::OdometryWithCovariance& state) const
 
 void GliderNode::publishOdometry(Glider::Odometry& odom) const
 {
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Publishing Odometry from prediction";
     nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(odom);
     GliderROS::Conversions::addCovariance<nav_msgs::msg::Odometry>(current_state_, msg);
     odom_pub_->publish(msg);
@@ -157,6 +159,7 @@ void GliderNode::publishOdometry(Glider::Odometry& odom) const
 void GliderNode::publishNavSatFix(Glider::OdometryWithCovariance& state) const
 {
     // TODO add covariance
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Publishing NavSatFix from optimization";
     sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(state);
     gps_pub_->publish(msg);
 }
@@ -164,6 +167,7 @@ void GliderNode::publishNavSatFix(Glider::OdometryWithCovariance& state) const
 void GliderNode::publishNavSatFix(Glider::Odometry& odom) const
 {
     // TODO add covariance
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Publishing NavSatFix from prediction";
     sensor_msgs::msg::NavSatFix msg = GliderROS::Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(odom);
     gps_pub_->publish(msg);
 }

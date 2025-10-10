@@ -11,12 +11,12 @@
 
 using namespace Glider;
 
-Odometry::Odometry(gtsam::Values& vals, gtsam::Key key_index, int64_t timestamp, bool init)
+Odometry::Odometry(gtsam::Values& vals, int64_t timestamp, gtsam::Key key, bool init)
 {
-    pose_ = vals.at<gtsam::Pose3>(X(key_index));
+    pose_ = vals.at<gtsam::Pose3>(X(key));
     orientation_ = pose_.rotation();
     position_ = pose_.translation();
-    velocity_ = vals.at<gtsam::Point3>(V(key_index));
+    velocity_ = vals.at<gtsam::Point3>(V(key));
 
     altitude_ = pose_.translation().z();
     heading_ = pose_.rotation().yaw();

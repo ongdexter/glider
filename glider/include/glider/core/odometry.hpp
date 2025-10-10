@@ -41,10 +41,10 @@ class Odometry
         /*! @brief initialize the Odometry from the result of optimization, designed to used 
          *  by child class upon inheritance
          *  @param val: results from gtsam optimization
-         *  @param key: current key_index to get current results from val
          *  @param timestamp: timestamp passed to the optimizer
+         *  @param key: current key_index to get current results from val
          *  @param init: should this constuctor call initialize the odometry */  
-        Odometry(gtsam::Values& val, gtsam::Key key, int64_t timestamp, bool init = true);
+        Odometry(gtsam::Values& val, int64_t timestamp, gtsam::Key key, bool init = true);
         /*! @brief initialize the Odometry from a NavState, likely from calling the the pim 
          *  predict
          *  @param ns: the current NavState from gtsam

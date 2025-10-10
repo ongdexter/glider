@@ -11,7 +11,7 @@
 
 using namespace Glider;
 
-OdometryWithCovariance::OdometryWithCovariance(gtsam::Values& vals, gtsam::Key key, gtsam::Matrix& pose_cov, gtsam::Matrix& velocity_cov, bool init) : Odometry(vals, key, init)
+OdometryWithCovariance::OdometryWithCovariance(gtsam::Values& vals, int64_t timestamp, gtsam::Key key, gtsam::Matrix& pose_cov, gtsam::Matrix& velocity_cov, bool init) : Odometry(vals, timestamp, key, init)
 {
     gtsam::imuBias::ConstantBias bias = vals.at<gtsam::imuBias::ConstantBias>(B(key));
         
@@ -30,10 +30,10 @@ OdometryWithCovariance::OdometryWithCovariance(gtsam::Values& vals, gtsam::Key k
 
 OdometryWithCovariance OdometryWithCovariance::Uninitialized()
 {
-    OdometryWithCovariance state;
-    state.setInitializedStatus(false);
+    OdometryWithCovariance odom;
+    odom.setInitializedStatus(false);
 
-    return state;
+    return odom;
 }
 
 Eigen::MatrixXd OdometryWithCovariance::getPoseCovariance() const

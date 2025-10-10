@@ -26,28 +26,24 @@ Glider::Glider(const std::string& path)
 
 void Glider::initializeLogging(const Parameters& params) const
 {
+    // initialize GLog
     google::InitGoogleLogging("Glider");
+    // TODO fix hard coding
     FLAGS_log_dir = "/home/jason/.ros/log/glider";
     if (params.log) FLAGS_alsologtostderr = 1;
 }
 
 void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
 {
-    // transform from GPS To UTM
+    // transform from lat lon To UTM
     Eigen::Vector3d meas = Eigen::Vector3d::Zero();
     
     double easting, northing;
     char zone[4];
     geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
     
-    if (frame_ == "ned")
-    {
-        meas.head(2) << northing, easting;
-    }
-    else
-    { 
-        meas.head(2) << easting, northing;
-    }
+    // keep everything in the enu frame
+    meas.head(2) << easting, northing;
     meas(2) = gps(2);
 
     // TODO t_imu_gps_ needs to be rotated!!
@@ -87,11 +83,11 @@ Odometry Glider::interpolate(int64_t timestamp)
     }
 }
 
-OdometryWithCovariance Glider::optimize()
+OdometryWithCovariance Glider::optimize(int64_t timestamp)
 {
     try
     {   
-        OdometryWithCovariance state = factor_manager_.runner();
+        OdometryWithCovariance state = factor_manager_.runner(timestamp);
         return state;
     }
     catch (const std::exception& e)
