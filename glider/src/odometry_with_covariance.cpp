@@ -151,6 +151,11 @@ bool OdometryWithCovariance::isMoving() const
     return is_moving_;
 }
 
+bool OdometryWithCovariance::isMovingFasterThan(const double vel) const
+{
+    double curr_vel_norm = velocity_.norm();
+    return curr_vel_norm > vel;
+}
 
 template gtsam::imuBias::ConstantBias OdometryWithCovariance::getBias<gtsam::imuBias::ConstantBias>() const;
 template std::pair<Eigen::Vector3d, Eigen::Vector3d> OdometryWithCovariance::getBias<std::pair<Eigen::Vector3d,Eigen::Vector3d>>() const;

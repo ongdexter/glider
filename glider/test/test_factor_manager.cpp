@@ -149,7 +149,7 @@ TEST(FactorManagerTestSuite, SystemInitialization)
     // assert system is NOT initialized
     ASSERT_FALSE(manager.isSystemInitialized());
 
-    for (int i = 0; i < params.initial_num_measurements + 1; ++i)
+    for (uint64_t i = 0; i < params.initial_num_measurements + 1; ++i)
     {
         // provide imu measurements for initialization
         for (int j = 0; j < params.bias_num_measurements + 1; ++j)
@@ -162,7 +162,8 @@ TEST(FactorManagerTestSuite, SystemInitialization)
         }
         Eigen::Vector3d meas(lat, lon, 0.0);
         manager.addGpsFactor(i+1, meas);
-        Glider::State state = manager.runner();
+        int64_t timestamp = 1;
+        Glider::OdometryWithCovariance state = manager.runner(timestamp);
     }
     
     // After adding the specified amount of gps measurements

@@ -87,6 +87,7 @@ T Odometry::getPose() const
     else
     {
        static_assert(std::is_same_v<T, gtsam::Pose3> ||
+                     std::is_same_v<T, Eigen::Isometry3d> ||
                      std::is_same_v<T, std::pair<Eigen::Vector3d, Eigen::Vector4d>> ||
                      std::is_same_v<T, std::pair<Eigen::Vector3d, Eigen::Quaterniond>>, "unsupported type");
     }
@@ -136,7 +137,7 @@ T Odometry::getPosition() const
 template<typename T>
 T Odometry::getVelocity() const
 {
-    if constexpr (std::is_same_v<T, gtsam::Vector3>)
+    if constexpr (std::is_same_v<T, gtsam::Point3>)
     {
         return velocity_; 
     }
@@ -147,8 +148,7 @@ T Odometry::getVelocity() const
     }
     else
     {   
-        static_assert(std::is_same_v<T, gtsam::Vector3> ||
-                      std::is_same_v<T, gtsam::Similarity3> ||
+        static_assert(std::is_same_v<T, gtsam::Point3> ||
                       std::is_same_v<T, Eigen::Vector3d>, "unsupported type");
     }
 }
