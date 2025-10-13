@@ -13,6 +13,7 @@
 #include <glog/logging.h>
 
 #include "glider/core/factor_manager.hpp"
+#include "glider/utils/gps_heading.hpp"
 #include "glider/utils/geodetics.hpp"
 
 namespace Glider
@@ -69,5 +70,15 @@ class Glider
         // @brief the relative translation from the gps to
         // the imu
         Eigen::Vector3d t_imu_gps_;
+        // @brief whether or not to use differential gps
+        // from motion for heading
+        bool use_dgpsfm_;
+        // @brief save the state estimate from 
+        // the optimizer
+        OdometryWithCovariance current_odom_;
+        // @brief save the previous gps measurement for 
+        // dgpsfm 
+        Eigen::Vector3d last_gps_;
+        double vel_threshold_;
 };
 }

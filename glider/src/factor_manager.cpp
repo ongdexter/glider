@@ -34,7 +34,8 @@ FactorManager::FactorManager(const Parameters& params)
     // set noise model
     gps_noise_ = gtsam::noiseModel::Isotropic::Sigma(3, params.gps_noise);
     orient_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(params.roll_pitch_cov, params.roll_pitch_cov, params.heading_cov));
-
+    dgpsfm_noise_ = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(M_PI/2, M_PI/2, params.dgpsfm_cov));
+    
     // set key index
     key_index_ = 0;
 
@@ -160,13 +161,77 @@ void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps)
     gtsam::Point3 meas(gps(0), gps(1), gps(2));
     gtsam::Rot3 rot = gtsam::Rot3::Quaternion(orient_(0), orient_(1), orient_(2), orient_(3));
 
-    // add measurements to factor graph
+    // add gps measurement to factor graph as gtsam object
     graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
     graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, orient_noise_);
+ 
+    // increment key index
+    key_index_++;
+}
+
+void FactorManager::addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double& heading, const bool fuse) 
+{
+    // wait until the imu is initialized
+    if (!imu_initialized_) return;
+    
+    double time = nanosecIntToDouble(timestamp);
+
+    if (key_index_ == 0)
+    {
+        // set the initial NavState 
+        // The initial orientation is the the initial orientation from the imu initialization
+        // The initial position is from the gps 
+        // Initial velocity is set to zero
+        gtsam::Pose3 initial_pose = gtsam::Pose3(initial_orientation_, gtsam::Point3(gps(0), gps(1), gps(2)));
+        gtsam::NavState initial_navstate(initial_pose, gtsam::Point3(0.0, 0.0, 0.0)); // TODO why do I need this??
+        
+        // save the initial values
+        initials_.insert(X(key_index_), initial_pose);
+        initials_.insert(V(key_index_), gtsam::Point3(0.0, 0.0, 0.0));
+        initials_.insert(B(key_index_), bias_);
+
+        // save the timestamps for the smoother
+        smoother_timestamps_[X(key_index_)] = time;
+        smoother_timestamps_[V(key_index_)] = time;
+        smoother_timestamps_[B(key_index_)] = time;
+
+        // add prior factors to the graph
+        graph_.add(gtsam::PriorFactor<gtsam::Pose3>(X(key_index_), initial_pose, gtsam::noiseModel::Isotropic::Sigma(6, 0.001)));
+        graph_.add(gtsam::PriorFactor<gtsam::Point3>(V(key_index_), gtsam::Point3(0.0, 0.0, 0.0), gtsam::noiseModel::Isotropic::Sigma(3, 0.001)));
+        graph_.add(gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(B(key_index_), bias_, gtsam::noiseModel::Isotropic::Sigma(6, 0.001)));
+
+        key_index_++;
+        gps_initialized_ = true;
+        LOG(INFO) << "[GLIDER] GPS Initialized";
+        return;
+    }
+   
+    // add the pim to the graph under a mutex
+    std::unique_lock<std::mutex> lock(mutex_);
+    graph_.add(gtsam::CombinedImuFactor(X(key_index_-1), V(key_index_-1), X(key_index_), V(key_index_), B(key_index_-1), B(key_index_), *pim_));
+    lock.unlock();
+
+    // insert new initial values
+    initials_.insert(X(key_index_), current_state_.getPose<gtsam::Pose3>());
+    initials_.insert(V(key_index_), current_state_.getVelocity<gtsam::Vector3>());
+    initials_.insert(B(key_index_), bias_);
+
+    // save the time for the smoother
+    smoother_timestamps_[X(key_index_)] = time;
+    smoother_timestamps_[V(key_index_)] = time;
+    smoother_timestamps_[B(key_index_)] = time;
+    
+    // add gps measurement to factor graph as gtsam object
+    gtsam::Point3 meas(gps(0), gps(1), gps(2));
+    gtsam::Rot3 rot = gtsam::Rot3::Ypr(heading, 0.0, 0.0);
+
+    graph_.add(gtsam::GPSFactor(X(key_index_), gps, gps_noise_));
+    if (fuse) graph_.addExpressionFactor(gtsam::rotation(X(key_index_)), rot, dgpsfm_noise_);
 
     // increment key index
     key_index_++;
 }
+
 
 void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient) 
 {

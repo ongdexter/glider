@@ -18,9 +18,14 @@ Glider::Glider(const std::string& path)
 
     frame_ = params.frame;
     t_imu_gps_ = params.t_imu_gps;
+    use_dgpsfm_ = params.use_dgpsfm;
+    vel_threshold_ = params.dgpsfm_threshold;
+
+    current_odom_ = OdometryWithCovariance::Uninitialized();
 
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
+    LOG(INFO) << "[GLIDER] Using DGPS From Motion: " << std::boolalpha << params.use_dgpsfm;
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 
@@ -48,8 +53,26 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
 
     // TODO t_imu_gps_ needs to be rotated!!
     meas = meas + t_imu_gps_;
-
-    factor_manager_.addGpsFactor(timestamp, meas);
+    
+    if (use_dgpsfm_ && current_odom_.isInitialized())
+    {
+        if(factor_manager_.isSystemInitialized() && current_odom_.isMovingFasterThan(vel_threshold_))
+        {
+            LOG(INFO) << "[GLIDER] Adding DGPS heading";
+            double heading_ne = geodetics::gpsHeading(last_gps_(0), last_gps_(1), gps(0), gps(1));
+            double heading_en = geodetics::geodeticToENU(heading_ne);
+            factor_manager_.addGpsFactor(timestamp, meas, heading_en, true);
+        }
+        else
+        {
+            factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
+        }
+    }
+    else
+    {
+        factor_manager_.addGpsFactor(timestamp, meas);
+    }
+    last_gps_ = gps;
 }
 
 void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat)
@@ -57,7 +80,8 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     if (frame_ == "ned")
     {
         //TODO what transforms need to happen here
-        factor_manager_.addImuFactor(timestamp, accel, gyro, quat);
+        //factor_manager_.addImuFactor(timestamp, accel, gyro, quat);'
+        LOG(FATAL) << "[GLIDER] NED frame not supported yet";
     }
     else if (frame_ == "enu")
     {
@@ -87,8 +111,8 @@ OdometryWithCovariance Glider::optimize(int64_t timestamp)
 {
     try
     {   
-        OdometryWithCovariance state = factor_manager_.runner(timestamp);
-        return state;
+        current_odom_ = factor_manager_.runner(timestamp);
+        return current_odom_;
     }
     catch (const std::exception& e)
     {

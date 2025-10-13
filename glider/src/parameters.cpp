@@ -15,25 +15,29 @@ Glider::Parameters::Parameters(const std::string& path)
         YAML::Node config = YAML::LoadFile(path);
 
         // covaraiances
-        accel_cov = config["covariances"]["accelerometer"].as<double>();
-        gyro_cov = config["covariances"]["gyroscope"].as<double>();
-        heading_cov = config["covariances"]["heading"].as<double>();
-        roll_pitch_cov = config["covariances"]["roll_pitch"].as<double>();
-        integration_cov = config["covariances"]["integration"].as<double>();
-        bias_cov = config["covariances"]["bias"].as<double>();
-        gps_noise = config["covariances"]["gps"].as<double>();
+        accel_cov = config["imu"]["covariances"]["accelerometer"].as<double>();
+        gyro_cov = config["imu"]["covariances"]["gyroscope"].as<double>();
+        heading_cov = config["imu"]["covariances"]["heading"].as<double>();
+        roll_pitch_cov = config["imu"]["covariances"]["roll_pitch"].as<double>();
+        integration_cov = config["imu"]["covariances"]["integration"].as<double>();
+        bias_cov = config["imu"]["covariances"]["bias"].as<double>();
+        gps_noise = config["gps"]["covariance"].as<double>();
         
         // constants
         gravity = config["constants"]["gravity"].as<double>();
         bias_num_measurements = config["constants"]["bias_num_measurements"].as<int>();
         initial_num_measurements = config["constants"]["initial_num_measurements"].as<uint64_t>();
 
-        frame = config["frame"]["imu"].as<std::string>();
+        frame = config["imu"]["frame"].as<std::string>();
         
         log = config["logging"]["stdout"].as<bool>(); 
 
         smooth = config["optimizer"]["smooth"].as<bool>();
         lag_time = config["optimizer"]["lag_time"].as<double>();
+
+        use_dgpsfm = config["dgpsfm"]["enable"].as<bool>();
+        dgpsfm_threshold = config["dgpsfm"]["integration_threshold"].as<double>();
+        dgpsfm_cov = config["dgpsfm"]["covariance"].as<double>();
 
         t_imu_gps(0) = config["gps_to_imu"]["x"].as<double>();
         t_imu_gps(1) = config["gps_to_imu"]["y"].as<double>();

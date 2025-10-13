@@ -1,4 +1,4 @@
-FROM osrf/ros:jazzy-desktop-full
+FROM osrf/ros:humble-desktop-full
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -20,8 +20,7 @@ RUN apt-get update \
 
 # add a user
 ARG user_id
-ARG USER noble
-RUN userdel ubuntu
+ARG USER jammy
 RUN useradd -U --uid ${user_id} -ms /bin/bash $USER \
  && echo "$USER:$USER" | chpasswd \
  && adduser $USER sudo \
@@ -33,20 +32,19 @@ WORKDIR /home/$USER
 
 # imu driver
 RUN sudo apt-get update \
- && sudo apt-get install -y ros-jazzy-gtsam
+ && sudo apt-get install -y ros-humble-gtsam
 
 RUN sudo apt-get install -y python3-colcon-common-extensions
 
 # install visualizer deps
-#RUN sudo apt-get install -y python3-pip
-#RUN pip3 install flask folium flask_socketio utm
+RUN sudo apt-get install -y python3-pip
+RUN pip3 install flask folium flask_socketio utm
 RUN sudo apt install -y libgoogle-glog-dev
 # build ros env
 RUN mkdir ws
 
 # make life nice inside docker
 RUN sudo chown $USER:$USER ~/.bashrc \
- && /bin/sh -c 'echo ". /opt/ros/jazzy/setup.bash" >> ~/.bashrc' \
+ && /bin/sh -c 'echo ". /opt/ros/humble/setup.bash" >> ~/.bashrc' \
  && /bin/sh -c 'echo "source ~/ws/install/setup.bash" >> ~/.bashrc' \
  && echo 'export PS1="\[$(tput setaf 2; tput bold)\]\u\[$(tput setaf 7)\]@\[$(tput setaf 3)\]\h\[$(tput setaf 7)\]:\[$(tput setaf 4)\]\W\[$(tput setaf 7)\]$ \[$(tput sgr0)\]"' >> ~/.bashrc
-
