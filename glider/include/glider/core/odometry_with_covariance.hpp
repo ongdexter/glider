@@ -94,6 +94,8 @@ class OdometryWithCovariance : public Odometry
          *  than some threshold otherwise false */
         bool isMoving() const;
 
+        bool isMovingFasterThan(const double vel) const;
+
     private:
         // @brief is the robot moving or not
         bool is_moving_;

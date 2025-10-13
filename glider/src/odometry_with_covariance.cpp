@@ -127,15 +127,15 @@ T OdometryWithCovariance::getKeyIndex() const
 
 std::string OdometryWithCovariance::getKeyIndex(const char* symbol)
 {
-    if (std::strcmp(symbol,"x") || std::strcmp(symbol,"X"))
+    if (std::strcmp(symbol,"x") == 0 || std::strcmp(symbol,"X") == 0)
     {
         return gtsam::DefaultKeyFormatter(X(key_index_));
     }
-    else if (std::strcmp(symbol,"b") || std::strcmp(symbol,"B"))
+    else if (std::strcmp(symbol,"b") == 0 || std::strcmp(symbol,"B") == 0)
     {
         return gtsam::DefaultKeyFormatter(B(key_index_));
     }
-    else if (std::strcmp(symbol,"v") || std::strcmp(symbol,"V"))
+    else if (std::strcmp(symbol,"v") == 0 || std::strcmp(symbol,"V") == 0)
     {
         return gtsam::DefaultKeyFormatter(V(key_index_));
     }
@@ -151,6 +151,11 @@ bool OdometryWithCovariance::isMoving() const
     return is_moving_;
 }
 
+bool OdometryWithCovariance::isMovingFasterThan(const double vel) const
+{
+    double curr_vel_norm = velocity_.norm();
+    return curr_vel_norm > vel;
+}
 
 template gtsam::imuBias::ConstantBias OdometryWithCovariance::getBias<gtsam::imuBias::ConstantBias>() const;
 template std::pair<Eigen::Vector3d, Eigen::Vector3d> OdometryWithCovariance::getBias<std::pair<Eigen::Vector3d,Eigen::Vector3d>>() const;

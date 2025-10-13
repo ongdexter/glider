@@ -186,10 +186,27 @@ if (BUILD_TESTS)
         ${PROJECT_NAME}
     )
 
+    add_executable(odometry_test test/test_odometry.cpp)
+    target_link_libraries(odometry_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+    )
+
+    add_executable(odometry_with_cov_test test/test_odometry_w_cov.cpp)
+    target_link_libraries(odometry_with_cov_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+    )
+        
+
     include(GoogleTest)
     gtest_discover_tests(utm_test)
     gtest_discover_tests(heading_test)
     gtest_discover_tests(params_test)
     gtest_discover_tests(manager_test)
     gtest_discover_tests(glider_test)
+    gtest_discover_tests(odometry_test)
+    gtest_discover_tests(odometry_with_cov_test)
 endif()

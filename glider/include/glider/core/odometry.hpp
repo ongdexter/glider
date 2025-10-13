@@ -140,7 +140,7 @@ class Odometry
         double longitude_;
                 
         // @brief the 3D velocity in m/s
-        gtsam::Vector3 velocity_;
+        gtsam::Point3 velocity_;
         // @brief the 3D position in UTM and ENU frames
         gtsam::Point3 position_;
         // @brief the 3D orientation in ENU frame
@@ -155,7 +155,7 @@ class Odometry
 
         // @breif nanosec timestamp
         int64_t timestamp_;
-        // @brief is this initialized
-        bool initialized_;
+        // @brief is this initialized, default to false
+        bool initialized_{false};
 };
 } // namespace glider

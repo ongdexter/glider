@@ -87,6 +87,7 @@ T Odometry::getPose() const
     else
     {
        static_assert(std::is_same_v<T, gtsam::Pose3> ||
+                     std::is_same_v<T, Eigen::Isometry3d> ||
                      std::is_same_v<T, std::pair<Eigen::Vector3d, Eigen::Vector4d>> ||
                      std::is_same_v<T, std::pair<Eigen::Vector3d, Eigen::Quaterniond>>, "unsupported type");
     }
@@ -136,7 +137,7 @@ T Odometry::getPosition() const
 template<typename T>
 T Odometry::getVelocity() const
 {
-    if constexpr (std::is_same_v<T, gtsam::Vector3>)
+    if constexpr (std::is_same_v<T, gtsam::Point3>)
     {
         return velocity_; 
     }
@@ -147,8 +148,7 @@ T Odometry::getVelocity() const
     }
     else
     {   
-        static_assert(std::is_same_v<T, gtsam::Vector3> ||
-                      std::is_same_v<T, gtsam::Similarity3> ||
+        static_assert(std::is_same_v<T, gtsam::Point3> ||
                       std::is_same_v<T, Eigen::Vector3d>, "unsupported type");
     }
 }
@@ -189,7 +189,7 @@ T Odometry::getOrientation() const
 double Odometry::getLatitude(const char* zone)
 {
     double temp;
-    geodetics::UTMtoLL(position_.x(), position_.y(), zone, latitude_, temp);
+    geodetics::UTMtoLL(position_.y(), position_.x(), zone, latitude_, temp);
 
     return latitude_;
 }
@@ -197,14 +197,14 @@ double Odometry::getLatitude(const char* zone)
 double Odometry::getLongitude(const char* zone)
 {
     double temp;
-    geodetics::UTMtoLL(position_.x(), position_.y(), zone, temp, longitude_);
+    geodetics::UTMtoLL(position_.y(), position_.x(), zone, temp, longitude_);
 
     return longitude_;
 }
 
 std::pair<double, double> Odometry::getLatLon(const char* zone)
 {
-    geodetics::UTMtoLL(position_.x(), position_.y(), zone, latitude_, longitude_);
+    geodetics::UTMtoLL(position_.y(), position_.x(), zone, latitude_, longitude_);
     return std::make_pair(latitude_, longitude_);
 }
 
