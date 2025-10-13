@@ -190,7 +190,7 @@ TEST(OdometryWithCovarianceTestSuite, TestBiases)
     }
 }
 
-TEST(OdometryWithCovariance, TestKeyIndex)
+TEST(OdometryWithCovarianceTestSuite, TestKeyIndex)
 { 
     // initialized glider factor manager and params
     Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
@@ -225,4 +225,33 @@ TEST(OdometryWithCovariance, TestKeyIndex)
 
     std::string bias_key = "b" + std::to_string(params.initial_num_measurements);
     ASSERT_EQ(odom.getKeyIndex("B"), bias_key);
+}
+
+TEST(OdometryWithCovarianceTestSuite, TestMovementStatus)
+{ 
+    // initialized glider factor manager and params
+    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::FactorManager manager(params);
+
+    Glider::OdometryWithCovariance odom;
+    
+    for (uint64_t i = 0; i < params.initial_num_measurements + 1; ++i)
+    {
+        // provide imu measurements for initialization
+        for (int j = 0; j < params.bias_num_measurements + 1; ++j)
+        {
+            Eigen::Vector3d accel(AX, AY, AZ);
+            Eigen::Vector3d gyro(GX, GY, GZ);
+            Eigen::Vector4d orient(QW, QX, QY, QZ);
+            int64_t timestamp = (i+1) * (j+1);
+            manager.addImuFactor(timestamp, accel, gyro, orient);
+        }
+        Eigen::Vector3d meas(LATITUDE, LONGITUDE, TZ);
+        manager.addGpsFactor(i+1, meas);
+        odom = manager.runner(1);
+    }
+
+    ASSERT_FALSE(odom.isMoving());
+    Eigen::Vector3d test(0.0,0.0,0.0);
+    ASSERT_FALSE(odom.isMovingFasterThan(1.0));
 }
