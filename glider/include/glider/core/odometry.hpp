@@ -155,7 +155,7 @@ class Odometry
 
         // @breif nanosec timestamp
         int64_t timestamp_;
-        // @brief is this initialized
-        bool initialized_;
+        // @brief is this initialized, default to false
+        bool initialized_{false};
 };
 } // namespace glider

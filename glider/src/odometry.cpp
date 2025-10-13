@@ -189,7 +189,7 @@ T Odometry::getOrientation() const
 double Odometry::getLatitude(const char* zone)
 {
     double temp;
-    geodetics::UTMtoLL(position_.x(), position_.y(), zone, latitude_, temp);
+    geodetics::UTMtoLL(position_.y(), position_.x(), zone, latitude_, temp);
 
     return latitude_;
 }
@@ -197,14 +197,14 @@ double Odometry::getLatitude(const char* zone)
 double Odometry::getLongitude(const char* zone)
 {
     double temp;
-    geodetics::UTMtoLL(position_.x(), position_.y(), zone, temp, longitude_);
+    geodetics::UTMtoLL(position_.y(), position_.x(), zone, temp, longitude_);
 
     return longitude_;
 }
 
 std::pair<double, double> Odometry::getLatLon(const char* zone)
 {
-    geodetics::UTMtoLL(position_.x(), position_.y(), zone, latitude_, longitude_);
+    geodetics::UTMtoLL(position_.y(), position_.x(), zone, latitude_, longitude_);
     return std::make_pair(latitude_, longitude_);
 }
 
