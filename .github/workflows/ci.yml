@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ ros2 ]
+  pull_request:
+    branches: [ ros2 ]
+
+jobs:
+  unit-tests-humble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image with dependencies
+        run: cd docker && bash build-humble.bash
+
+      - name: Run unit test in Docker
+        run: |
+          docker run --rm -v $(pwd):/workspace -w /workspace \
+            glider-ros-humble \
+            bash -c "cd glider && cmake -S . -B build -DBUILD_ROS=OFF -DBUILD_TESTS=ON \
+                      && cd build && cmake --build . && ctest --output-on-failure"
+
+  unit-tests-jazzy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image with dependencies
+        run: cd docker && bash build-jazzy.bash
+
+      - name: Run unit test in Docker
+        run: |
+          docker run --rm -v $(pwd):/workspace -w /workspace \
+            glider-ros-jazzy \
+            bash -c "cd glider && cmake -S . -B build -DBUILD_ROS=OFF -DBUILD_TESTS=ON \
+                      && cd build && cmake --build . && ctest --output-on-failure"
