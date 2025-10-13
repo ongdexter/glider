@@ -127,15 +127,15 @@ T OdometryWithCovariance::getKeyIndex() const
 
 std::string OdometryWithCovariance::getKeyIndex(const char* symbol)
 {
-    if (std::strcmp(symbol,"x") || std::strcmp(symbol,"X"))
+    if (std::strcmp(symbol,"x") == 0 || std::strcmp(symbol,"X") == 0)
     {
         return gtsam::DefaultKeyFormatter(X(key_index_));
     }
-    else if (std::strcmp(symbol,"b") || std::strcmp(symbol,"B"))
+    else if (std::strcmp(symbol,"b") == 0 || std::strcmp(symbol,"B") == 0)
     {
         return gtsam::DefaultKeyFormatter(B(key_index_));
     }
-    else if (std::strcmp(symbol,"v") || std::strcmp(symbol,"V"))
+    else if (std::strcmp(symbol,"v") == 0 || std::strcmp(symbol,"V") == 0)
     {
         return gtsam::DefaultKeyFormatter(V(key_index_));
     }
