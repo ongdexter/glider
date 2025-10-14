@@ -1,4 +1,4 @@
-name: CI
+name: Jazzy CI
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [ ros2 ]
 
+jobs:
   unit-tests-jazzy:
     runs-on: ubuntu-latest
     steps:
