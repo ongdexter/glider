@@ -31,9 +31,6 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     bool use_odom = this->get_parameter("subscribers.use_odom").as_bool();
     
     std::string path = this->get_parameter("path").as_string();
-    use_sim_time_ = this->get_clock()->get_clock_type() == RCL_ROS_TIME;
-
-    latest_imu_timestamp_ = 0;
 
     glider_ = std::make_unique<Glider::Glider>(path);
     current_state_ = Glider::OdometryWithCovariance::Uninitialized();
@@ -109,8 +106,6 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
     int64_t timestamp = getTime(msg->header.stamp);
 
     glider_->addImu(timestamp, accel, gyro, orient);
-
-    latest_imu_timestamp_ = timestamp;
 }
 
 void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)

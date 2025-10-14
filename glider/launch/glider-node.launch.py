@@ -7,17 +7,16 @@
 """
 
 import os
+import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    # create logging directory
-    os.makedirs("/home/jason/.ros/log/glider", exist_ok=True)
-
     # Declare launch arguments
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
@@ -25,19 +24,13 @@ def generate_launch_description():
         description='Use simulation time'
     )
     
-    use_odom_arg = DeclareLaunchArgument(
-        'use_odom',
-        default_value='false',
-        description='Use odometry'
-    )
-    
     # Get launch configurations
     use_sim_time = LaunchConfiguration('use_sim_time')
-    use_odom = LaunchConfiguration('use_odom')
     
     # Find package share directory
     glider_share = FindPackageShare('glider')
-    
+    glider_share_dir = get_package_share_directory('glider')
+
     # Path to parameter files
     ros_params_file = PathJoinSubstitution([
         glider_share,
@@ -50,7 +43,12 @@ def generate_launch_description():
         'config',
         'glider-params.yaml'
     ])
-     
+    
+    # create logging directory
+    with open(os.path.join(glider_share_dir, "config", "glider-params.yaml")) as f:
+        config = yaml.safe_load(f)
+    os.makedirs(config["logging"]["directory"], exist_ok=True)
+
     # Create the glider node
     glider_node = Node(
         package='glider',
@@ -61,7 +59,7 @@ def generate_launch_description():
             ros_params_file,
             {'path': graph_params_file,
              'use_sim_time': use_sim_time,
-             'use_odom': use_odom}
+             'use_odom': False}
         ],
         remappings=[
             ('/gps', '/ublox/fix'),
@@ -70,4 +68,4 @@ def generate_launch_description():
         ]
     )
     
-    return LaunchDescription([use_sim_time_arg, use_odom_arg, glider_node])
+    return LaunchDescription([use_sim_time_arg, glider_node])

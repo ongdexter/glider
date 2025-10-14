@@ -25,6 +25,7 @@ Glider::Glider(const std::string& path)
 
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
+    LOG(INFO) << "[GLIDER] Logging to: " << params.log_dir;    
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 
@@ -32,7 +33,7 @@ void Glider::initializeLogging(const Parameters& params) const
 {
     // initialize GLog
     google::InitGoogleLogging("Glider");
-    // TODO fix hard coding
+
     FLAGS_log_dir = params.log_dir;
     if (params.log) FLAGS_alsologtostderr = 1;
 }

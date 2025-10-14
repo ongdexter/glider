@@ -6,6 +6,20 @@
 Glider is a G-INS system built on [GTSAM](https://github.com/borglab/gtsam). It currently takes in GPS and 9-DOF IMU and provides a full
 state estimate up to the rate of you IMU. Glider is designed to be configured to your system. 
 
+## Building Glider
+Glider can be build with colcon as a ROS2 package with `colcon build --packages-select glider`. If you only want the api you can build with:
+```
+cmake -S . -B build -DBUILD_ROS=OFF
+cmake --build build 
+```
+
+## Running Glider
+To run glider with ros use `ros2 run glider glider-node.launch.py`. If you are running with a bag file use:
+```
+ros2 bag run <bag_file_name> --clock
+ros2 launch glider glider-node.launch.py use_sim_time:=true
+```
+
 ## Hardware Setup
 You're setup needs a GPS and a 9-DOF IMU, that is an IMU that provides a full orientation. The IMU orientation should be provided in the IMU's frame
 as this is standard for robotics, but we are working on supporting the NED frame. We use a VectorNav VN100T IMU. It is important make sure your IMU magnetometer is calibrated, if it is not aligned correctly the heading output of glider will be incorrect.
@@ -18,7 +32,7 @@ the parameters mean:
  - `publishers.viz.use`: if true will publish an `Odometry` topic for visualization centered around the origin.
  - `publishers.viz.origin_easting`: the easting value you want to viz odometry to center around.
  - `publishers.viz.origin_northing`: the northing value you want the viz odometry to center around.
- - `subscribers.use_odom`: Still under development
+ - `subscribers.use_odom`: Still under development.
 
 ## Glider Setup
 You can configure glider itself in `config/glider-params.yaml`, this is where you can specify the parameters for the factor graph. Here's more detail on each parameter:
