@@ -199,7 +199,14 @@ if (BUILD_TESTS)
         GTest::Main
         ${PROJECT_NAME}
     )
-        
+
+    add_executable(ros_conversion_test test/test_ros_conversions.cpp)
+    target_link_libraries(ros_conversion_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+        ${PROJECT_NAME}_ros
+    )
 
     include(GoogleTest)
     gtest_discover_tests(utm_test)
@@ -209,4 +216,5 @@ if (BUILD_TESTS)
     gtest_discover_tests(glider_test)
     gtest_discover_tests(odometry_test)
     gtest_discover_tests(odometry_with_cov_test)
+    gtest_discover_tests(ros_conversion_test)
 endif()
