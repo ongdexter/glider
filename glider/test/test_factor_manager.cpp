@@ -10,7 +10,7 @@
 TEST(FactorManagerTestSuite, ImuInitialization)
 {
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     // provide measurements for initialization
@@ -43,7 +43,7 @@ TEST(FactorManagerTestSuite, ImuInitialization)
 TEST(FactorManagerTestSuite, PimParameters)
 { 
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     // provide measurements for initialization
@@ -87,7 +87,7 @@ TEST(FactorManagerTestSuite, KeyIndex)
     double lon = -75.199197;
 
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
     
     ASSERT_EQ(manager.getKeyIndex(), 0);
@@ -115,7 +115,7 @@ TEST(FactorManagerTestSuite, GPSInitialization)
     double lon = -75.199197;
 
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
     
     // provide imu measurements for initialization
@@ -143,7 +143,7 @@ TEST(FactorManagerTestSuite, SystemInitialization)
     double lon = -75.199197;
 
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     // assert system is NOT initialized

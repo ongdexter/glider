@@ -48,7 +48,7 @@ def generate_launch_description():
     graph_params_file = PathJoinSubstitution([
         glider_share,
         'config',
-        'graph-params.yaml'
+        'glider-params.yaml'
     ])
      
     # Create the glider node

@@ -11,7 +11,7 @@
 
 TEST(GliderTestSuite, AddTo)
 {
-    Glider::Glider glider("../config/graph-params.yaml");
+    Glider::Glider glider("../config/glider-params.yaml");
 
     Eigen::Vector3d accel(0.0, 0.0, 9.81);
     Eigen::Vector3d gyro(0.0, 0.0, 0.0);

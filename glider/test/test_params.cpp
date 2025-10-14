@@ -8,7 +8,7 @@
 
 TEST(ParamsTestSuite, Constants)
 {
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     
     // gravity can be positive or negative depending on
     // imu frame
@@ -22,7 +22,7 @@ TEST(ParamsTestSuite, Constants)
 
 TEST(ParamsTestSuite, Covariances)
 {
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
 
     // covariances should be positive
     ASSERT_GE(params.accel_cov, 0.0);
@@ -36,7 +36,7 @@ TEST(ParamsTestSuite, Covariances)
 
 TEST(ParamsTestSuite, Frame)
 { 
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
 
     EXPECT_TRUE(params.frame == "ned" || params.frame == "enu");
 }

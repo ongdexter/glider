@@ -61,6 +61,9 @@ struct Parameters
     // @brief if true this logs to stdout and log file otherwise it logs
     // just to a file
     bool log;
+    // @brief the directory to save the log file, glog needs an 
+    // absolute path
+    std::string log_dir;
 
     // @brief if true optimize using a fixed lag smoother, otherwise
     // optimize with iSAM2
