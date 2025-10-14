@@ -17,6 +17,6 @@ on:
       - name: Run unit test in Docker
         run: |
           docker run --rm -v $(pwd):/workspace -w /workspace \
-            glider-ros-jazzy \
+            glider-ros:jazzy \
             bash -c "cd glider && cmake -S . -B build -DBUILD_ROS=OFF -DBUILD_TESTS=ON \
                       && cd build && cmake --build . && ctest --output-on-failure"
