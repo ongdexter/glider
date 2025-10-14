@@ -40,7 +40,7 @@ static const double GZ = 0.0;
 TEST(OdometryWithCovarianceTestSuite, TestInitialization)
 {
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     Glider::OdometryWithCovariance odom;
@@ -71,7 +71,7 @@ TEST(OdometryWithCovarianceTestSuite, TestInitialization)
 TEST(OdometryWithCovarainceTestSuite, TestCovariances)
 {
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     Glider::OdometryWithCovariance odom;
@@ -125,7 +125,7 @@ TEST(OdometryWithCovarainceTestSuite, TestCovariances)
 TEST(OdometryWithCovarianceTestSuite, TestBiases)
 {
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     Glider::OdometryWithCovariance odom;
@@ -193,7 +193,7 @@ TEST(OdometryWithCovarianceTestSuite, TestBiases)
 TEST(OdometryWithCovarianceTestSuite, TestKeyIndex)
 { 
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     Glider::OdometryWithCovariance odom;
@@ -230,7 +230,7 @@ TEST(OdometryWithCovarianceTestSuite, TestKeyIndex)
 TEST(OdometryWithCovarianceTestSuite, TestMovementStatus)
 { 
     // initialized glider factor manager and params
-    Glider::Parameters params = Glider::Parameters::Load("../config/graph-params.yaml");
+    Glider::Parameters params = Glider::Parameters::Load("../config/glider-params.yaml");
     Glider::FactorManager manager(params);
 
     Glider::OdometryWithCovariance odom;

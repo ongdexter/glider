@@ -18,6 +18,10 @@ Glider::Glider(const std::string& path)
 
     frame_ = params.frame;
     t_imu_gps_ = params.t_imu_gps;
+    r_enu_ned_ = Eigen::Matrix3d::Zero();
+    r_enu_ned_ << 0.0, 1.0, 0.0,
+                  1.0, 0.0, 0.0,
+                  0.0, 0.0, -1.0;
 
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
@@ -29,7 +33,7 @@ void Glider::initializeLogging(const Parameters& params) const
     // initialize GLog
     google::InitGoogleLogging("Glider");
     // TODO fix hard coding
-    FLAGS_log_dir = "/home/jason/.ros/log/glider";
+    FLAGS_log_dir = params.log_dir;
     if (params.log) FLAGS_alsologtostderr = 1;
 }
 
@@ -57,7 +61,11 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     if (frame_ == "ned")
     {
         //TODO what transforms need to happen here
-        factor_manager_.addImuFactor(timestamp, accel, gyro, quat);
+        Eigen::Vector3d accel_enu = r_enu_ned_ * accel;
+        Eigen::Vector3d gyro_enu = r_enu_ned_ * gyro;
+        Eigen::Vector4d quat_enu = rotateQuaternion(r_enu_ned_, quat);
+
+        factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, quat_enu);
     }
     else if (frame_ == "enu")
     {
@@ -95,5 +103,15 @@ OdometryWithCovariance Glider::optimize(int64_t timestamp)
         LOG(ERROR) << "[GLIDER] Optimization Error: " << e.what();
         return OdometryWithCovariance::Uninitialized();
     }
+}
+
+Eigen::Vector4d Glider::rotateQuaternion(const Eigen::Matrix3d& rot, const Eigen::Vector4d& quat) const
+{
+    Eigen::Quaterniond q_ned(quat(0), quat(1), quat(2), quat(3));
+    Eigen::Quaterniond q_ned_enu(rot);
+
+    Eigen::Quaterniond q_enu = q_ned_enu * q_ned;
+
+    return Eigen::Vector4d(q_enu.w(), q_enu.x(), q_enu.y(), q_enu.z());
 }
 }

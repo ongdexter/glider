@@ -31,6 +31,7 @@ Glider::Parameters::Parameters(const std::string& path)
         frame = config["frame"]["imu"].as<std::string>();
         
         log = config["logging"]["stdout"].as<bool>(); 
+        log_dir = config["logging"]["directory"].as<std::string>();
 
         smooth = config["optimizer"]["smooth"].as<bool>();
         lag_time = config["optimizer"]["lag_time"].as<double>();
