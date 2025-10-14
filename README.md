@@ -1,5 +1,6 @@
 # Glider
-
+![Humble CI](https://github.com/KumarRobotics/glider/workflows/humble-ci.yml/badge.svg?branch=ros2)
+![Jazzy CI](https://github.com/KumarRobotics/glider/workflows/jazzy-ci.yml/badge.svg?branch=ros2)
 Glider is a G-INS system built on [GTSAM](https://github.com/borglab/gtsam). It currently takes in GPS and 9-DOF IMU and provides a full
 state estimate up to the rate of you IMU. Glider is highly configurable and more features are coming soon. 
 
