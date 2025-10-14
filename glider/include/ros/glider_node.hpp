@@ -71,19 +71,13 @@ class GliderNode : public rclcpp::Node
 
         // parameters
         bool initialized_;
-        bool use_sim_time_;
         bool publish_nsf_;
         bool viz_;
         std::string utm_zone_;
-        double declination_;
         double origin_easting_;
         double origin_northing_;
-        int gps_counter_;
-        int gps_init_count_;
 
         // tracker
         Glider::OdometryWithCovariance current_state_;
-
-        int64_t latest_imu_timestamp_;
 };
 }

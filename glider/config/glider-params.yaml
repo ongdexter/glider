@@ -14,7 +14,7 @@ frame:
   imu: "enu"
 logging:
   stdout: true
-  directory: "/home/jason/.ros/log/glider"
+  directory: "/tmp/glider"
 optimizer:
   smooth: true
   lag_time: 5.0
