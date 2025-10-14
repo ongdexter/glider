@@ -4,10 +4,10 @@
 ![Jazzy CI](https://github.com/KumarRobotics/glider/actions/workflows/jazzy-ci.yml/badge.svg?branch=ros2)
 
 Glider is a G-INS system built on [GTSAM](https://github.com/borglab/gtsam). It currently takes in GPS and 9-DOF IMU and provides a full
-state estimate up to the rate of you IMU. Glider is highly configurable and more features are coming soon. 
+state estimate up to the rate of you IMU. Glider is designed to be configured to your system. 
 
 ## Hardware Setup
-You're setup needs a GPS and a 9-DOF IMU, that is an IMU that provides a full orientation. The IMU orientation should be provided in the `IMU` frame
+You're setup needs a GPS and a 9-DOF IMU, that is an IMU that provides a full orientation. The IMU orientation should be provided in the IMU's frame
 as this is standard for robotics, but we are working on supporting the NED frame. We use a VectorNav VN100T IMU. It is important make sure your IMU magnetometer is calibrated, if it is not aligned correctly the heading output of glider will be incorrect.
 
 ## ROS2 Setup
@@ -29,7 +29,7 @@ You can configure glider itself in `config/glider-params.yaml`, this is where yo
  - `covariances.heading`: covariance of the IMU's magnetometer heading in radians, 0.09 radians is about 5 degrees.
  - `covariances.roll_pitch`: covariance of the roll and pitch angles in radians.
  - `covariances.bias`: covariance of the bias estimate.
- - `frame`: What frame the IMU is in, currently only support ENU but NED support is coming .
+ - `frame`: What frame the IMU is in, either `enu` or `ned`.
 ### GPS Parameters
  - `gps.covariance`: covariance of the gps position estimate.
 ### Other Parameters
@@ -44,7 +44,8 @@ You can configure glider itself in `config/glider-params.yaml`, this is where yo
 ### Building and Running Unit Tests
 We use GTest to run unit tests. You can build the tests with 
 ``` 
-cmake -S . -B build
+cd glider
+cmake -S . -B build -DBUILD_TESTS=ON
 cmake --build build
 ```
 and run with:
