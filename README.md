@@ -30,9 +30,9 @@ You can configure glider itself in `config/glider-params.yaml`, this is where yo
  - `covariances.roll_pitch`: covariance of the roll and pitch angles in radians.
  - `covariances.bias`: covariance of the bias estimate.
  - `frame`: What frame the IMU is in, either `enu` or `ned`.
-### GPS Parameters
+#### GPS Parameters
  - `gps.covariance`: covariance of the gps position estimate.
-### Other Parameters
+#### Other Parameters
  - `constants.gravity`: gravity in your IMU's frame.
  - `constants.bias_num_measurements`: number of IMU measurements to use to initially estimate the bias.
  - `constants.initial_num_measurements`: number of times to let the factor graph optimize before glider starts reporting odometry.
@@ -53,4 +53,5 @@ and run with:
 cd build 
 ctest
 ```
+Note these tests are run on PR's and pushes to the primary branch.
 
