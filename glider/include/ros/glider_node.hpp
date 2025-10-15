@@ -76,6 +76,7 @@ class GliderNode : public rclcpp::Node
         std::string utm_zone_;
         double origin_easting_;
         double origin_northing_;
+        double freq_;
 
         // tracker
         Glider::OdometryWithCovariance current_state_;

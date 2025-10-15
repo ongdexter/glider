@@ -27,7 +27,7 @@ as this is standard for robotics, but we are working on supporting the NED frame
 ## ROS2 Setup
 We recommend using Glider with ROS2, you can configure the ros parameters in `config/ros-params.yaml`. Here's more detail about what
 the parameters mean:
- - `publishers.rate`: the rate at which odometry is published in hz.
+ - `publishers.rate`: the rate at which odometry is published in hz, setting this to 0 publishes at IMU rate.
  - `publishers.nav_sat_fix`: if true will publish the odometry as a `NavSatFix` msg, the default is an `Odometry` msg.
  - `publishers.viz.use`: if true will publish an `Odometry` topic for visualization centered around the origin.
  - `publishers.viz.origin_easting`: the easting value you want to viz odometry to center around.
