@@ -1,7 +1,7 @@
 glider_node:
   ros__parameters:
     publishers:
-      rate: 100.0
+      rate: 0.0
       nav_sat_fix: false
       viz:
         use: true

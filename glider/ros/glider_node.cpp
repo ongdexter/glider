@@ -21,7 +21,7 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     declare_parameter("path", "");
 
     // Get parameters
-    double freq = this->get_parameter("publishers.rate").as_double();
+    freq_ = this->get_parameter("publishers.rate").as_double();
 
     publish_nsf_ = this->get_parameter("publishers.nav_sat_fix").as_bool();
     viz_ = this->get_parameter("publishers.viz.use").as_bool();
@@ -60,13 +60,13 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     if (publish_nsf_)
     {
         LOG(INFO) << "[GLIDER] Publishing NavSatFix msg on /glider/fix";
-        LOG(INFO) << "[GLIDER] Using prediction rate: " << freq;
+        LOG(INFO) << "[GLIDER] Using prediction rate: " << freq_;
         gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("/glider/fix", 10);
     }
     else
     {
         LOG(INFO) << "[GLIDER] Publishing Odometry msg on /glider/odom";
-        LOG(INFO) << "[GLIDER] Using prediction rate: " << freq;
+        LOG(INFO) << "[GLIDER] Using prediction rate: " << freq_;
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom", 10);
     }
 
@@ -76,9 +76,11 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
         odom_viz_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom/viz", 10);
     }
 
-    // TODO add in predictor
-    std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq);
-    timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
+    if (freq_ > 0)
+    {
+        std::chrono::milliseconds d = GliderROS::Conversions::hzToDuration(freq_);
+        timer_ = this->create_wall_timer(d, std::bind(&GliderNode::interpolationCallback, this));
+    }
     LOG(INFO) << "[GLIDER] GliderNode Initialized";
 }
 
@@ -106,6 +108,12 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
     int64_t timestamp = getTime(msg->header.stamp);
 
     glider_->addImu(timestamp, accel, gyro, orient);
+
+    if (freq_ == 0 && current_state_.isInitialized())
+    {
+        Glider::Odometry odom = glider_->interpolate(timestamp);
+        (publish_nsf_) ? publishNavSatFix(odom) : publishOdometry(odom);
+    }
 }
 
 void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
