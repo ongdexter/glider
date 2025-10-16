@@ -52,14 +52,7 @@ FactorManager::FactorManager(const Parameters& params)
 boost::shared_ptr<gtsam::PreintegrationCombinedParams> FactorManager::defaultImuParams(double g)
 {
     boost::shared_ptr<gtsam::PreintegrationCombinedParams> params;
-    if (params_.frame == "enu")
-    {
-        params = gtsam::PreintegrationCombinedParams::MakeSharedU(g);
-    }
-    else
-    {
-        params = gtsam::PreintegrationCombinedParams::MakeSharedD(g);
-    }
+    params = gtsam::PreintegrationCombinedParams::MakeSharedU(g);
     double gyro_sigma = (0.5 * M_PI / 180.0) / 60.0;
     double accel_sigma = 0.001;
     
