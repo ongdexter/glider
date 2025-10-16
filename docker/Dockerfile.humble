@@ -37,8 +37,6 @@ RUN sudo apt-get update \
 RUN sudo apt-get install -y python3-colcon-common-extensions
 
 # install visualizer deps
-RUN sudo apt-get install -y python3-pip
-RUN pip3 install flask folium flask_socketio utm
 RUN sudo apt install -y libgoogle-glog-dev
 # build ros env
 RUN mkdir ws
@@ -48,4 +46,3 @@ RUN sudo chown $USER:$USER ~/.bashrc \
  && /bin/sh -c 'echo ". /opt/ros/humble/setup.bash" >> ~/.bashrc' \
  && /bin/sh -c 'echo "source ~/ws/install/setup.bash" >> ~/.bashrc' \
  && echo 'export PS1="\[$(tput setaf 2; tput bold)\]\u\[$(tput setaf 7)\]@\[$(tput setaf 3)\]\h\[$(tput setaf 7)\]:\[$(tput setaf 4)\]\W\[$(tput setaf 7)\]$ \[$(tput sgr0)\]"' >> ~/.bashrc
-

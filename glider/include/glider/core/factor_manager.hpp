@@ -79,6 +79,13 @@ class FactorManager
          *  @param timestamp: time of the gps measurement
          *  @param gps: GPS measurement in the UTM frame */
         void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
+        /*! @brief adds the gps measurement and a heading from dgps
+         *  @param timestamp: time of the gps measurement 
+         *  @param gps: GPS measurement in the UTM frame
+         *  @param heading: heading from dgpsfm in the ENU frame 
+         *  @param fuse: whether or not to add the heading measurement
+         *  to the factor graph */
+        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double& heading, const bool fuse);
         /*! @brief adds the imu measurements to the pim and saves the orientation
          *  @param timestamp: time of the imu measurement 
          *  @param accel: the accelerometer reading
@@ -165,6 +172,8 @@ class FactorManager
         gtsam::noiseModel::Isotropic::shared_ptr gps_noise_;
         // @brief noise in the orientation estimate from the imu
         gtsam::noiseModel::Base::shared_ptr orient_noise_;
+        // @brief noise in the heading estimate of differential gps
+        gtsam::noiseModel::Base::shared_ptr dgpsfm_noise_;
 
         // factor graph
         // @brief tracks the number of times the optimizer has been called

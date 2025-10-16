@@ -72,6 +72,15 @@ struct Parameters
     // smooth over.
     double lag_time; 
 
+    // @brief wheather or not to integrate differential gps from motion heading,
+    // if false orientation from the IMU will be integrated
+    bool use_dgpsfm;
+    // @brief velocity in m/s that the robot should be moving at to integrate
+    // dgpsfm
+    double dgpsfm_threshold;
+    // @brief heading noise for differential gps from motion 
+    double dgpsfm_cov;
+
     // @brief translation from the GPS to the IMU
     Eigen::Vector3d t_imu_gps;
 };

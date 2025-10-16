@@ -7,11 +7,11 @@ docker run -it --rm \
     -v "/dev:/dev" \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "`pwd`/../glider:/home/`whoami`/ws/src/glider" \
-    -v "/home/`whoami`/Data/evmapper:/home/`whoami`/data" \
+    -v "/home/`whoami`/Data:/home/`whoami`/data" \
     -e DISPLAY=$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
     -e XAUTHORITY=$XAUTH \
-    --name glider-ros-humble \
-    glider-ros:humble \
+    --name glider-ros-jazzy \
+    glider-ros:jazzy \
     bash
 xhost -
