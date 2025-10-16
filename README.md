@@ -7,7 +7,15 @@ Glider is a G-INS system built on [GTSAM](https://github.com/borglab/gtsam). It 
 state estimate up to the rate of you IMU. Glider is designed to be configured to your system. 
 
 ## Building Glider
-Glider can be build with colcon as a ROS2 package with `colcon build --packages-select glider`. If you only want the api you can build with:
+To run glider you can use the provided docker images, ROS2 jazzy and humble are both supported, simply use the `build.bash` and `run.bash` files. You can mounted volumes in the run files if necessary. If you want to inlcude this in another ROS2 workspace, you may need to install the following dependencies:
+```
+apt install ros-$ROS_DISTRO-gtsam libgoogle-glog-dev libgest-dev
+```
+Glider can be build with colcon as a ROS2 package with:
+```
+colcon build --packages-select glider
+```
+If you only want the api you can build with:
 ```
 cmake -S . -B build -DBUILD_ROS=OFF
 cmake --build build 
@@ -67,5 +75,5 @@ and run with:
 cd build 
 ctest
 ```
-Note these tests are run on PR's and pushes to the primary branch.
+Note these tests are run on PR's and pushes to the `ros2` branch.
 
