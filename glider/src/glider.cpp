@@ -15,7 +15,7 @@ Glider::Glider(const std::string& path)
     Parameters params = Parameters::Load(path);
     initializeLogging(params);
     factor_manager_ = FactorManager(params);
-
+    
     frame_ = params.frame;
     t_imu_gps_ = params.t_imu_gps;
     r_enu_ned_ = Eigen::Matrix3d::Zero();
@@ -27,7 +27,7 @@ Glider::Glider(const std::string& path)
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
     LOG(INFO) << "[GLIDER] Logging to: " << params.log_dir;    
     use_dgpsfm_ = params.use_dgpsfm;
-    vel_threshold_ = params.dgpsfm_threshold;
+    dgps_ = Geodetics::DifferentialGpsFromMotion(params.frame, params.dgpsfm_threshold);
 
     current_odom_ = OdometryWithCovariance::Uninitialized();
 
@@ -46,7 +46,34 @@ void Glider::initializeLogging(const Parameters& params) const
     if (params.log) FLAGS_alsologtostderr = 1;
 }
 
+
 void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
+{
+    // route the
+    if (use_dgpsfm_)
+    {
+        addGpsWithHeading(timestamp, gps);
+        return;
+    }
+
+    // transform from lat lon To UTM
+    Eigen::Vector3d meas = Eigen::Vector3d::Zero();
+    
+    double easting, northing;
+    char zone[4];
+    geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
+    
+    // keep everything in the enu frame
+    meas.head(2) << easting, northing;
+    meas(2) = gps(2);
+
+    // TODO t_imu_gps_ needs to be rotated!!
+    meas = meas + t_imu_gps_;
+
+    factor_manager_.addGpsFactor(timestamp, meas);
+}
+
+void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)
 {
     // transform from lat lon To UTM
     Eigen::Vector3d meas = Eigen::Vector3d::Zero();
@@ -62,25 +89,17 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
     // TODO t_imu_gps_ needs to be rotated!!
     meas = meas + t_imu_gps_;
     
-    if (use_dgpsfm_ && current_odom_.isInitialized())
+    if(factor_manager_.isSystemInitialized() && current_odom_.isMovingFasterThan(dgps_.getVelocityThreshold()))
     {
-        if(factor_manager_.isSystemInitialized() && current_odom_.isMovingFasterThan(vel_threshold_))
-        {
-            LOG(INFO) << "[GLIDER] Adding DGPS heading";
-            double heading_ne = geodetics::gpsHeading(last_gps_(0), last_gps_(1), gps(0), gps(1));
-            double heading_en = geodetics::geodeticToENU(heading_ne);
-            factor_manager_.addGpsFactor(timestamp, meas, heading_en, true);
-        }
-        else
-        {
-            factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
-        }
+        LOG(INFO) << "[GLIDER] Adding DGPS heading";
+        double heading = dgps_.getHeading(gps);
+        factor_manager_.addGpsFactor(timestamp, meas, heading, true);
     }
     else
     {
-        factor_manager_.addGpsFactor(timestamp, meas);
+        dgps_.setLastGps(gps);
+        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
     }
-    last_gps_ = gps;
 }
 
 void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat)
@@ -92,8 +111,6 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
         Eigen::Vector4d quat_enu = rotateQuaternion(r_enu_ned_, quat);
 
         factor_manager_.addImuFactor(timestamp, accel_enu, gyro_enu, quat_enu);
-        //factor_manager_.addImuFactor(timestamp, accel, gyro, quat);'
-        LOG(FATAL) << "[GLIDER] NED frame not supported yet";
     }
     else if (frame_ == "enu")
     {
