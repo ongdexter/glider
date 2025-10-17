@@ -69,3 +69,9 @@ double DifferentialGpsFromMotion::headingRadiansToDegrees(const double heading) 
     heading_deg = std::fmod(std::fmod(heading_deg, 360.0) + 360.0, 360.0);
     return heading_deg;
 }
+
+bool DifferentialGpsFromMotion::isIntegratable(const Eigen::Vector3d& velocity) const
+{
+    double vel = velocity.head(2).norm();
+    return vel > vel_threshold_;
+}

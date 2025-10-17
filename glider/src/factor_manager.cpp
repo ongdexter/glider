@@ -6,7 +6,6 @@
 
 #include "glider/core/factor_manager.hpp"
 #include "glider/utils/geodetics.hpp"
-#include "glider/utils/gps_heading.hpp"
 
 #include <gtsam/slam/expressions.h>
 
