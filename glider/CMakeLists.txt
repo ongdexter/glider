@@ -59,6 +59,7 @@ add_library(${PROJECT_NAME} SHARED
   src/parameters.cpp
   src/time.cpp
   src/gps_heading.cpp
+  src/differential_gps.cpp
   src/odometry.cpp
   src/odometry_with_covariance.cpp
   src/factor_manager.cpp
