@@ -58,7 +58,6 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED
   src/parameters.cpp
   src/time.cpp
-  src/gps_heading.cpp
   src/differential_gps.cpp
   src/odometry.cpp
   src/odometry_with_covariance.cpp
@@ -160,13 +159,6 @@ if (BUILD_TESTS)
       ${PROJECT_NAME}
     )
 
-    add_executable(heading_test test/test_heading.cpp)
-    target_link_libraries(heading_test
-      GTest::GTest
-      GTest::Main
-      ${PROJECT_NAME}
-    )
-
     add_executable(params_test test/test_params.cpp)
     target_link_libraries(params_test
         GTest::GTest
@@ -202,6 +194,14 @@ if (BUILD_TESTS)
         ${PROJECT_NAME}
     )
 
+    add_executable(diff_gps_test test/test_differential_gps.cpp)
+    target_link_libraries(diff_gps_test
+        GTest::GTest
+        GTest::Main
+        ${PROJECT_NAME}
+    )
+
+
     add_executable(ros_conversion_test test/test_ros_conversions.cpp)
     target_link_libraries(ros_conversion_test
         GTest::GTest
@@ -212,11 +212,11 @@ if (BUILD_TESTS)
 
     include(GoogleTest)
     gtest_discover_tests(utm_test)
-    gtest_discover_tests(heading_test)
     gtest_discover_tests(params_test)
     gtest_discover_tests(manager_test)
     gtest_discover_tests(glider_test)
     gtest_discover_tests(odometry_test)
     gtest_discover_tests(odometry_with_cov_test)
+    gtest_discover_tests(diff_gps_test)
     gtest_discover_tests(ros_conversion_test)
 endif()

@@ -29,6 +29,7 @@ class DifferentialGpsFromMotion
         void setLastGps(const Eigen::Vector3d& gps);
         bool isInitialized() const;
         double getVelocityThreshold() const;
+        bool isIntegratable(const Eigen::Vector3d& vel) const;
 
     private:
 
