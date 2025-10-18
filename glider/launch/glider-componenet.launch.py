@@ -6,6 +6,7 @@
 """
 
 import os
+import yaml
 import launch
 
 import ament_index_python.packages
@@ -19,118 +20,13 @@ from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 
-
-import yaml
-
-
-# --------- master_example.launch.py
-
-
-camera_list = {
-    'cam0': '23540201',
-}
-
-serial = '23540201'
-camera_type = 'blackfly_s'
-parameter_file = PJoin(
-        [FindPackageShare('spinnaker_camera_driver'), 'config', camera_type + '.yaml']
-    )
-
-exposure_controller_parameters = {
-    'type': 'master',
-    'brightness_target': 120,  # from 0..255
-    'brightness_tolerance': 20,  # when to update exposure/gain
-    # watch that max_exposure_time is short enough
-    # to support the trigger frame rate!
-    'max_exposure_time': 15000,  # usec
-    'min_exposure_time': 5000,  # usec
-    'max_gain': 29.9,
-    'gain_priority': False,
-}
-
-camera_params = {
-    'debug': False,
-    'quiet': True,
-    'buffer_queue_size': 1,
-    'compute_brightness': True,
-    'exposure_auto': 'Continuous',
-    'exposure_time': 10000,  # not used under auto exposure
-    'trigger_mode': 'Off',
-    'frame_rate_auto': 'Off',
-    'frame_rate_enable': True,
-    'gain_auto': 'Continuous',
-    'trigger_source': 'Software',
-    'trigger_selector': 'FrameStart',
-    'trigger_overlap': 'ReadOut',
-    'trigger_activation': 'RisingEdge',
-    'balance_white_auto': 'Continuous',
-    # You must enable chunk mode and chunks: frame_id, exposure_time, and gain
-    'chunk_mode_active': True,
-    'chunk_selector_frame_id': 'FrameID',
-    'chunk_enable_frame_id': True,
-    'chunk_selector_exposure_time': 'ExposureTime',
-    'chunk_enable_exposure_time': True,
-    'chunk_selector_gain': 'Gain',
-    'chunk_enable_gain': True,
-    # The Timestamp is not used at the moment
-    'chunk_selector_timestamp': 'Timestamp',
-    'chunk_enable_timestamp': True,
-    'frame_rate': 5
-}
-
-
-def make_parameters(context):
-    """Launch synchronized camera driver node."""
-    pd = LaunchConfig('camera_parameter_directory')
-    calib_url = 'file://' + LaunchConfig('calibration_directory').perform(context) + '/'
-
-    exp_ctrl_names = [cam + '.exposure_controller' for cam in camera_list.keys()]
-    driver_parameters = {
-        'cameras': list(camera_list.keys()),
-        'exposure_controllers': exp_ctrl_names,
-        'ffmpeg_image_transport.encoding': 'hevc_nvenc',  # only for ffmpeg image transport
-    }
-    # generate identical exposure controller parameters for all cameras
-    for exp in exp_ctrl_names:
-        driver_parameters.update(
-            {exp + '.' + k: v for k, v in exposure_controller_parameters.items()}
-        )
-
-    # generate camera parameters
-    cam_parameters['parameter_file'] = PJoin([pd, 'blackfly_s.yaml'])
-    for cam, serial in camera_list.items():
-        cam_params = {cam + '.' + k: v for k, v in cam_parameters.items()}
-        cam_params[cam + '.serial_number'] = serial
-        cam_params[cam + '.camerainfo_url'] = calib_url + serial + '.yaml'
-        cam_params[cam + '.frame_id'] = cam
-        driver_parameters.update(cam_params)  # insert into main parameter list
-        # link the camera to its exposure controller. Each camera has its own controller
-        driver_parameters.update({cam + '.exposure_controller_name': cam + '.exposure_controller'})
-    return driver_parameters
-
-
-# ----------------------------------
-
 def launch_setup(context, *args, **kwargs):
-    """Create composable node."""
-    # For the camera
-    #cam_name = LaunchConfig("camera_name")
-    #cam_str = cam_name.perform(context)
-
-    # For the GPS
     config_directory = os.path.join(
         ament_index_python.packages.get_package_share_directory('ublox_gps'),
         'config')
     param_config = os.path.join(config_directory, 'zed_f9p.yaml')
     with open(param_config, 'r') as f:
         params = yaml.safe_load(f)['ublox_gps_node']['ros__parameters']
-
-    # For EC
-    # bias_config = os.path.join(
-    #     ament_index_python.packages.get_package_share_directory('high_altitude_ec'),
-    #     'config/silky_ev_all_zero.bias')
-    bias_config = "/home/dcist/fclad/ROS/high_altitude_env/src/high_altitude_ec/config/silkyHD_all_zero.bias"
-    # Declare launch arguments
 
     # Find package share directory
     glider_share = FindPackageShare('glider')
@@ -146,7 +42,7 @@ def launch_setup(context, *args, **kwargs):
     graph_params_file = PJoin([
         glider_share,
         'config',
-        'vectornav-vn100t.yaml'
+        'glider-params.yaml'
     ])
 
     container = ComposableNodeContainer(
@@ -163,10 +59,8 @@ def launch_setup(context, *args, **kwargs):
                     name="recorder",
                     parameters=[{'topics': [
                         "/ublox_gps_node/fix",
-                        "/odom",
+                        "/glider/odom",
                         "/vectornav/imu",
-                        "/vectornav/magnetic",
-                        "/cam_driver/image_raw"
                         ],
                                  'storage_id': 'mcap',
                                  'record_all': False,
@@ -190,17 +84,6 @@ def launch_setup(context, *args, **kwargs):
                 remappings=[],
                 extra_arguments=[{'use_intra_process_comms': True}]),
 
-            # FLIR camera
-            ComposableNode(
-                package='spinnaker_camera_driver',
-                plugin='spinnaker_camera_driver::CameraDriver',
-                name="cam_driver",
-                parameters=[camera_params, {'parameter_file': parameter_file, 'serial_number': serial}],
-                remappings=[
-                    ('~/control', '/exposure_control/control'),
-                ],
-                extra_arguments=[{'use_intra_process_comms': True}],
-            ),
             # Ublox GPS
             ComposableNode(
                 package='ublox_gps',
@@ -276,11 +159,5 @@ def generate_launch_description():
             ),
             # This is for the composed nodes
             OpaqueFunction(function=launch_setup),
-            #Node(
-            #    package="sf000_driver",
-            #    executable="reader.py",
-            #    name="reader",
-            #    remappings=[("/range", "/sf000/range")],
-            #)
         ]
     )

@@ -91,7 +91,6 @@ void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)
     
     if(factor_manager_.isSystemInitialized() && current_odom_.isMovingFasterThan(dgps_.getVelocityThreshold()))
     {
-        LOG(INFO) << "[GLIDER] Adding DGPS heading";
         double heading = dgps_.getHeading(gps);
         factor_manager_.addGpsFactor(timestamp, meas, heading, true);
     }
