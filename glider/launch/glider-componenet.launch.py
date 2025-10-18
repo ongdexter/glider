@@ -145,18 +145,7 @@ def generate_launch_description():
     return launch.LaunchDescription(
         [
             LaunchArg("bag", default_value=[""], description="name of output bag"),
-            LaunchArg("bag_prefix", default_value=["/home/dcist/data/symbiote_"], description="prefix of output bag"),
-            # FLIR camera
-            LaunchArg(
-                'camera_parameter_directory',
-                default_value=PJoin([FindPackageShare('spinnaker_camera_driver'), 'config']),
-                description='root directory for camera parameter definitions',
-            ),
-            LaunchArg(
-                'calibration_directory',
-                default_value=['camera_calibrations'],
-                description='root directory for camera calibration files',
-            ),
+            LaunchArg("bag_prefix", default_value=["/tmp/glider_"], description="prefix of output bag"),
             # This is for the composed nodes
             OpaqueFunction(function=launch_setup),
         ]
