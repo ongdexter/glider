@@ -105,8 +105,8 @@ if (BUILD_ROS)
     ${PROJECT_NAME}_ros
   )
 
-  rclcpp_components_register_nodes(${PROJECT_NAME} "GliderROS::GliderNode")
-  set(node_plugins "${node_plugins}GliderROS::GliderNode;$<TARGET_FILE:${PROJECT_NAME}>\n")
+  rclcpp_components_register_nodes(${PROJECT_NAME}_ros "GliderROS::GliderNode")
+  set(node_plugins "${node_plugins}GliderROS::GliderNode;$<TARGET_FILE:${PROJECT_NAME}_ros>\n")
 
   install(DIRECTORY include/
     DESTINATION include/
