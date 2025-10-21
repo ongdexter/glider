@@ -126,10 +126,6 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
     glider_->addGps(timestamp, gps);
 
     current_state_ = glider_->optimize(timestamp);
-    if (current_state_.isInitialized())
-    {
-        (publish_nsf_) ? publishNavSatFix(current_state_) : publishOdometry(current_state_);
-    }
 }
 
 void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)

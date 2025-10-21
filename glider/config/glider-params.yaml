@@ -10,7 +10,7 @@ imu:
 gps: 
   covariance: 2.0
 dgpsfm:
-  enable: false
+  enable: true
   integration_threshold: 1.0
   covariance: 0.03
 constants:
