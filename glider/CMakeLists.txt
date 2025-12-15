@@ -36,15 +36,16 @@ find_package(GTest REQUIRED)
 find_package(glog REQUIRED)
 find_package(yaml-cpp REQUIRED)
 # ROS 2
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclcpp_components REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-
-set(node_plugins "")
-
+if (BUILD_ROS)
+  find_package(ament_cmake REQUIRED)
+  find_package(rclcpp REQUIRED)
+  find_package(rclcpp_components REQUIRED)
+  find_package(sensor_msgs REQUIRED)
+  find_package(std_msgs REQUIRED)
+  find_package(nav_msgs REQUIRED)
+  
+  set(node_plugins "")
+endif()
 # Include directories
 include_directories(
   include
@@ -146,6 +147,60 @@ if (BUILD_ROS)
   )
 
   ament_package()
+else()
+  message("Configuring non-ROS installation")
+  
+  # Install the library
+  install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+  )
+  
+  # Install headers
+  install(DIRECTORY include/
+    DESTINATION include
+  )
+  
+  # Install config files
+  install(DIRECTORY config/
+    DESTINATION share/${PROJECT_NAME}/config
+  )
+  
+  # Generate and install CMake config files
+  include(CMakePackageConfigHelpers)
+  
+  # Generate the config file that includes the exports
+  configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
+    NO_SET_AND_CHECK_MACRO
+    NO_CHECK_REQUIRED_COMPONENTS_MACRO
+  )
+  
+  # Generate the version file
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION 1.0.0
+    COMPATIBILITY AnyNewerVersion
+  )
+  
+  # Install the config files
+  install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION lib/cmake/${PROJECT_NAME}
+  )
+  
+  # Install the export set
+  install(EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION lib/cmake/${PROJECT_NAME}
+  )
 endif()
 
 # TESTS
