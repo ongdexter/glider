@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+# Find dependencies
+include(CMakeFindDependencyMacro)
+
+find_dependency(Eigen3 REQUIRED)
+find_dependency(GTSAM REQUIRED)
+find_dependency(GTSAM_UNSTABLE REQUIRED)
+find_dependency(glog REQUIRED)
+find_dependency(yaml-cpp REQUIRED)
+
+# Include the targets file
+include("${CMAKE_CURRENT_LIST_DIR}/gliderTargets.cmake")
+
+check_required_components(glider)
