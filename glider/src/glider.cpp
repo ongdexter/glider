@@ -34,6 +34,8 @@ Glider::Glider(const std::string& path)
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
     LOG(INFO) << "[GLIDER] Using DGPS From Motion: " << std::boolalpha << params.use_dgpsfm;
+    LOG(INFO) << "[GLIDER] Using DGPS: " << std::boolalpha << params.use_dgps;
+    assert(!(params.use_dgpsfm && params.use_dgps) && "Both DGPS and DGPS From Motion are set to true, this is not allowed");
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 
