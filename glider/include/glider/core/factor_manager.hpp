@@ -31,6 +31,7 @@
 
 #include "odometry_with_covariance.hpp"
 #include "odometry.hpp"
+#include "point.hpp"
 #include "glider/utils/parameters.hpp"
 #include "glider/utils/time.hpp"
 
@@ -92,8 +93,19 @@ class FactorManager
          *  @param gyro: gyroscopre reading
          *  @param orient: orientation in quaternion (w,x,y,z) format */
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
+        /*! @brief adds a landmark factor for an estimated utm point and covariance 
+         *  @param timestamp: time of the landmark measurements
+         *  @param landmark_id: a unique id for the landmark
+         *  @param utm: the estimated utm coordinate of the landmark
+         *  @param cov: the 3x3 covariance matrix for the estimated utm coordinate of the landmark */
+        void addLandmarkFactor(int64_t timestamp, size_t landmark_id, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov);
+
 
         // getters and checkers
+        /*! @brief gets the estimated landmark utm coordinate and covariance
+         *  @param landmark_id: the uinque id for the landmark 
+         *  @return the estimated utm point and covariance */
+        PointWithCovariance getLandmarkPoint(size_t landmark_id) const;
         /*! @brief gets the complete factor graph */
         gtsam::ExpressionFactorGraph getGraph();
         /*! @brief checks if the imu has been initialized 
@@ -210,5 +222,9 @@ class FactorManager
         bool imu_initialized_;
         // @param tracks if a gps measurement has been received
         bool gps_initialized_;
+
+        // landmark variables
+        std::unordered_map<size_t, Eigen::Matrix3d> landmark_info_;
+        std::unordered_map<size_t, Eigen::Vector3d> landmark_info_vec_;
 };
 }

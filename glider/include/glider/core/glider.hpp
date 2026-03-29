@@ -43,6 +43,9 @@ class Glider
          *  @param gyro: gyroscope measurement in the imu's frame
          *  @param quat: the orientation measurement in the imu's frame */
         void addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
+        void addLandmark(int64_t timestamp, size_t lid, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov);
+        PointWithCovariance getLandmark(size_t lid);
+        
 
         /*! @brief calls the factor manager to interpolate between GPS 
          *  measurements using the pim
