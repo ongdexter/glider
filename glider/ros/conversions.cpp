@@ -32,6 +32,10 @@ Output Conversions::rosToEigen(const Input& msg)
     {
         return RosToEigen::odomConvert(msg);
     }
+    else if constexpr(std::is_same_v<Input, gps_msgs::msg::GPSFix>)
+    {
+        return RosToEigen::dgpsConvert(msg);
+    }
 }
 
 template<typename Output, typename Input>
@@ -90,6 +94,14 @@ Eigen::Vector4d Conversions::RosToEigen::orientConvert(const geometry_msgs::msg:
 Eigen::Vector3d Conversions::RosToEigen::gpsConvert(const sensor_msgs::msg::NavSatFix& msg)
 {
     return Eigen::Vector3d(msg.latitude, msg.longitude, msg.altitude);
+}
+
+std::pair<Eigen::Vector3d, Eigen::Vector2d> Conversions::RosToEigen::dgpsConvert(const gps_msgs::msg::GPSFix& msg)
+{
+    Eigen::Vector3d gps(msg.latitude, msg.longitude, msg.altitude);
+    Eigen::Vector2d heading(msg.track, msg.err_track);
+
+    return std::make_pair(gps, heading);
 }
 
 Eigen::Isometry3d Conversions::RosToEigen::odomConvert(const nav_msgs::msg::Odometry& msg)
@@ -352,6 +364,7 @@ template Eigen::Vector3d Conversions::rosToEigen<Eigen::Vector3d>(const sensor_m
 template Eigen::Vector4d Conversions::rosToEigen<Eigen::Vector4d>(const geometry_msgs::msg::Quaternion& msg);
 template Eigen::Isometry3d Conversions::rosToEigen<Eigen::Isometry3d>(const geometry_msgs::msg::PoseStamped& msg);
 template Eigen::Isometry3d Conversions::rosToEigen<Eigen::Isometry3d>(const nav_msgs::msg::Odometry& msg);
+template std::pair<Eigen::Vector3d, Eigen::Vector2d> Conversions::rosToEigen<std::pair<Eigen::Vector3d, Eigen::Vector2d>>(const gps_msgs::msg::GPSFix& msg);
 
 template geometry_msgs::msg::Vector3 Conversions::eigenToRos<geometry_msgs::msg::Vector3>(const Eigen::Vector3d& vec);
 template geometry_msgs::msg::Quaternion Conversions::eigenToRos<geometry_msgs::msg::Quaternion>(const Eigen::Vector4d& vec);

@@ -73,6 +73,27 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
     factor_manager_.addGpsFactor(timestamp, meas);
 }
 
+void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading)
+{
+    // transform from lat lon To UTM
+    Eigen::Vector3d meas = Eigen::Vector3d::Zero();
+    
+    double easting, northing;
+    char zone[4];
+    geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
+    
+    // keep everything in the enu frame
+    meas.head(2) << easting, northing;
+    meas(2) = gps(2);
+
+    if (factor_manager_.isSystemInitialized())
+    {
+        factor_manager_.addGpsFactor(timestamp, meas, heading.x(), true);
+    } else {
+        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
+    }
+}
+
 void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)
 {
     // transform from lat lon To UTM

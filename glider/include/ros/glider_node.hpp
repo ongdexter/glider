@@ -14,6 +14,7 @@
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <gps_msgs/msg/gps_fix.hpp>
 
 #include "glider/core/glider.hpp"
 #include "glider/core/odometry.hpp"
@@ -36,6 +37,7 @@ class GliderNode : public rclcpp::Node
         void interpolationCallback();
 
         // subscriber callbacks
+        void dgpsCallback(const gps_msgs::msg::GPSFix::ConstSharedPtr msg);
         void gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
         void imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
         void magCallback(const sensor_msgs::msg::MagneticField::ConstSharedPtr msg);
@@ -51,6 +53,7 @@ class GliderNode : public rclcpp::Node
         void publishOdometryViz(nav_msgs::msg::Odometry viz_msg) const;
 
         // subscriptions
+        rclcpp::Subscription<gps_msgs::msg::GPSFix>::ConstSharedPtr dgps_sub_;
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::ConstSharedPtr gps_sub_;
         rclcpp::Subscription<sensor_msgs::msg::Imu>::ConstSharedPtr imu_sub_;
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::ConstSharedPtr mag_sub_;

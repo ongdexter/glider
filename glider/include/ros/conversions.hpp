@@ -4,7 +4,9 @@
 *
 * Header file for ros to eigen conversions
 */
+#pragma once
 
+#include <utility>
 #include <chrono>
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
@@ -14,6 +16,7 @@
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <std_msgs/msg/header.hpp>
+#include <gps_msgs/msg/gps_fix.hpp>
 #include <builtin_interfaces/msg/time.hpp>
 #include <Eigen/Dense>
 
@@ -52,6 +55,7 @@ class Conversions
             static Eigen::Vector4d orientConvert(const geometry_msgs::msg::Quaternion& orient);
 
             static Eigen::Vector3d gpsConvert(const sensor_msgs::msg::NavSatFix& gps);
+            static std::pair<Eigen::Vector3d, Eigen::Vector2d> dgpsConvert(const gps_msgs::msg::GPSFix& gps);
             static Eigen::Isometry3d poseConvert(const geometry_msgs::msg::PoseStamped& msg);
             static Eigen::Isometry3d odomConvert(const nav_msgs::msg::Odometry& msg);
         };

@@ -51,6 +51,10 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
                                                                       std::bind(&GliderNode::gpsCallback, this, std::placeholders::_1),
                                                                       gps_sub_options);
 
+    dgps_sub_ = this->create_subscription<gps_msgs::msg::GPSFix>("/dgps", 1,
+                                                                 std::bind(&GliderNode::dgpsCallback, this, std::placeholders::_1),
+                                                                 gps_sub_options);
+
     auto odom_sub_options = rclcpp::SubscriptionOptions();
     odom_sub_options.callback_group = gps_group_;
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/odom", 1,
@@ -114,6 +118,17 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
         Glider::Odometry odom = glider_->interpolate(timestamp);
         (publish_nsf_) ? publishNavSatFix(odom) : publishOdometry(odom);
     }
+}
+
+void GliderNode::dgpsCallback(const gps_msgs::msg::GPSFix::ConstSharedPtr msg)
+{
+    LOG_FIRST_N(INFO, 1) << "[GLIDER] Received DGPS measurement";
+    std::pair<Eigen::Vector3d, Eigen::Vector2d> dgps = GliderROS::Conversions::rosToEigen<std::pair<Eigen::Vector3d, Eigen::Vector2d>>(*msg);
+    int64_t timestamp = getTime(msg->header.stamp);
+
+    glider_->addGpsWithHeading(timestamp, dgps.first, dgps.second); 
+    
+    current_state_ = glider_->optimize(timestamp);
 }
 
 void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)

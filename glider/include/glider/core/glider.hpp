@@ -36,6 +36,7 @@ class Glider
          *  frame does not matter */
         void addGps(int64_t timestamp, Eigen::Vector3d& gps);
         void addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps);
+        void addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading);
         /*! @brief converts the imu measurements into the ENU frame if
          *  they are not in that frame already.
          *  @param timestamp: time the imu measurement was taken
