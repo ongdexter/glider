@@ -62,6 +62,7 @@ add_library(${PROJECT_NAME} SHARED
   src/differential_gps.cpp
   src/odometry.cpp
   src/odometry_with_covariance.cpp
+  src/point.cpp
   src/factor_manager.cpp
   src/glider.cpp
 )

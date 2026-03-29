@@ -252,6 +252,29 @@ void FactorManager::addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel
     last_imu_time_ = current_time;
 }
 
+void FactorManager::addLandmarkFactor(int64_t timestamp, size_t landmark_id, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov)
+{
+    Eigen::Matrix3d obs_info = cov.inverse();
+    auto it = landmark_info_.find(landmark_id);
+    if (it == landmark_info_.end()) {
+        landmark_info_[landmark_id] = obs_info;
+        landmark_info_vec_[landmark_id] = obs_info * utm;
+    } else {
+        it->second += obs_info;
+        landmark_info_vec_[landmark_id] += obs_info * utm;
+    }
+}
+
+PointWithCovariance FactorManager::getLandmarkPoint(size_t landmark_id) const
+{
+    auto it = landmark_info_.find(landmark_id);
+    if (it == landmark_info_.end()) return PointWithCovariance();
+    
+    Eigen::Matrix3d cov = it->second.inverse();
+    Eigen::Vector3d point = cov * landmark_info_vec_.at(landmark_id);
+    return PointWithCovariance(point, cov);
+}
+
 Odometry FactorManager::predict(int64_t timestamp)
 {
     // TODO update this.

@@ -121,6 +121,16 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     }
 }  
 
+void Glider::addLandmark(int64_t timestamp, size_t lid, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov)
+{
+    factor_manager_.addLandmarkFactor(timestamp, lid, utm, cov);
+}
+
+PointWithCovariance Glider::getLandmark(size_t lid)
+{
+    return factor_manager_.getLandmarkPoint(lid);
+}
+
 Odometry Glider::interpolate(int64_t timestamp)
 {
     try
