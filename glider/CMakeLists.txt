@@ -43,7 +43,8 @@ if (BUILD_ROS)
   find_package(sensor_msgs REQUIRED)
   find_package(std_msgs REQUIRED)
   find_package(nav_msgs REQUIRED)
-  
+  find_package(gps_msgs REQUIRED)
+
   set(node_plugins "")
 endif()
 # Include directories
@@ -95,6 +96,7 @@ if (BUILD_ROS)
     sensor_msgs
     geometry_msgs
     nav_msgs
+    gps_msgs
   )
 
   add_executable(${PROJECT_NAME}_node

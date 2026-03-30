@@ -34,6 +34,8 @@ Glider::Glider(const std::string& path)
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
     LOG(INFO) << "[GLIDER] Using DGPS From Motion: " << std::boolalpha << params.use_dgpsfm;
+    LOG(INFO) << "[GLIDER] Using DGPS: " << std::boolalpha << params.use_dgps;
+    assert(!(params.use_dgpsfm && params.use_dgps) && "Both DGPS and DGPS From Motion are set to true, this is not allowed");
     LOG(INFO) << "[GLIDER] Glider initialized";
 }
 
@@ -71,6 +73,27 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
     meas = meas + t_imu_gps_;
 
     factor_manager_.addGpsFactor(timestamp, meas);
+}
+
+void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading)
+{
+    // transform from lat lon To UTM
+    Eigen::Vector3d meas = Eigen::Vector3d::Zero();
+    
+    double easting, northing;
+    char zone[4];
+    geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
+    
+    // keep everything in the enu frame
+    meas.head(2) << easting, northing;
+    meas(2) = gps(2);
+
+    if (factor_manager_.isSystemInitialized())
+    {
+        factor_manager_.addGpsFactor(timestamp, meas, heading.x(), true);
+    } else {
+        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
+    }
 }
 
 void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)

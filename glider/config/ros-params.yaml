@@ -5,7 +5,7 @@ glider_node:
       nav_sat_fix: false
       viz:
         use: true
-        origin_easting: 482933.2819920078
-        origin_northing: 4421345.135559781
+        origin_easting: 753912.0063845584
+        origin_northing: 3385461.6073698294
     subscribers:
       use_odom: false

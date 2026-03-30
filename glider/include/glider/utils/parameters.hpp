@@ -81,6 +81,9 @@ struct Parameters
     // @brief heading noise for differential gps from motion 
     double dgpsfm_cov;
 
+    bool use_dgps;
+    double dgps_cov;
+
     // @brief translation from the GPS to the IMU
     Eigen::Vector3d t_imu_gps;
 };
