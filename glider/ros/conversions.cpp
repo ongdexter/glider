@@ -175,24 +175,28 @@ std_msgs::msg::Header Conversions::getHeader(int64_t timestamp, std::string fram
 }
 
 template<typename Output>
-Output Conversions::odomToRos(Glider::Odometry& odom, const char* zone)
+Output Conversions::odomToRos(Glider::Odometry& odom, std::string frame_id, const char* zone, const Eigen::Vector3d& offset)
 {
     if constexpr (std::is_same_v<Output, sensor_msgs::msg::NavSatFix>)
     {
         sensor_msgs::msg::NavSatFix msg;
-        if (zone == nullptr)
+        if (zone == nullptr || std::string(zone) == "")
         {
             throw std::invalid_argument("specify a zone for UTM to GPS converstion");
         }
         else
         {
-            std::pair<double, double> latlon = odom.getLatLon(zone);
+            std::pair<double, double> latlon = odom.getLatLon(zone, offset);
+
+            msg.status.status = odom.isInitialized() ? 
+                                sensor_msgs::msg::NavSatStatus::STATUS_FIX : 
+                                sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
 
             msg.latitude = latlon.first;
             msg.longitude = latlon.second;
-            msg.altitude = odom.getAltitude();
+            msg.altitude = odom.getAltitude() + offset(2);
             msg.position_covariance_type = 3;
-            msg.header = getHeader(odom.getTimestamp(), "enu");
+            msg.header = getHeader(odom.getTimestamp(), frame_id);
         }
         return msg;
     }
@@ -216,7 +220,7 @@ Output Conversions::odomToRos(Glider::Odometry& odom, const char* zone)
         msg.twist.twist.linear.x = v(0);
         msg.twist.twist.linear.y = v(1);
         msg.twist.twist.linear.z = v(2);
-        msg.header = getHeader(odom.getTimestamp(), "enu");
+        msg.header = getHeader(odom.getTimestamp(), frame_id);
 
         return msg;
     }
@@ -228,22 +232,26 @@ Output Conversions::odomToRos(Glider::Odometry& odom, const char* zone)
 }
 
 template<typename Output>
-Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, const char* zone)
+Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, std::string frame_id, const char* zone, const Eigen::Vector3d& offset)
 {
     if constexpr (std::is_same_v<Output, sensor_msgs::msg::NavSatFix>)
     {
         sensor_msgs::msg::NavSatFix msg;
-        if (zone == nullptr)
+        if (zone == nullptr || std::string(zone) == "")
         {
             throw std::invalid_argument("specify a zone for UTM to GPS conversion");
         }
         else
         {
-            std::pair<double, double> latlon = odom_wc.getLatLon(zone);
+            std::pair<double, double> latlon = odom_wc.getLatLon(zone, offset);
+
+            msg.status.status = odom_wc.isGpsOffsetInitialized() ? 
+                                sensor_msgs::msg::NavSatStatus::STATUS_FIX : 
+                                sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
 
             msg.latitude = latlon.first;
             msg.longitude = latlon.second;
-            msg.altitude = odom_wc.getAltitude();
+            msg.altitude = odom_wc.getAltitude() + offset(2);
             msg.position_covariance_type = 3;
             Eigen::Matrix3d cov = odom_wc.getPositionCovariance();
             for (int i = 0; i < cov.rows(); ++i) 
@@ -253,7 +261,7 @@ Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, const cha
                     msg.position_covariance[i * 3 + j] = cov(i, j);
                 }
             }
-            msg.header = getHeader(odom_wc.getTimestamp(), "enu");
+            msg.header = getHeader(odom_wc.getTimestamp(), frame_id);
         }
         return msg;
     }
@@ -295,7 +303,7 @@ Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, const cha
                 msg.twist.covariance[i * cov.rows() + j] = cov(i, j);
             }
         }
-        msg.header = getHeader(odom_wc.getTimestamp(), "enu");
+        msg.header = getHeader(odom_wc.getTimestamp(), frame_id);
         return msg;
     }
     else
@@ -371,11 +379,11 @@ template geometry_msgs::msg::Quaternion Conversions::eigenToRos<geometry_msgs::m
 template sensor_msgs::msg::NavSatFix Conversions::eigenToRos<sensor_msgs::msg::NavSatFix>(const Eigen::Vector3d& vec);
 template geometry_msgs::msg::PoseStamped Conversions::eigenToRos<geometry_msgs::msg::PoseStamped>(const Eigen::Isometry3d& vec);
 
-template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::Odometry& odom, const char* zone);
-template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::Odometry& odom, const char* zone);
+template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::Odometry& odom, std::string frame_id, const char* zone, const Eigen::Vector3d& offset);
+template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::Odometry& odom, std::string frame_id, const char* zone, const Eigen::Vector3d& offset);
 
-template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::OdometryWithCovariance& odom_wc, const char* zone);
-template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::OdometryWithCovariance& odom_wc, const char* zone);
+template nav_msgs::msg::Odometry Conversions::odomToRos<nav_msgs::msg::Odometry>(Glider::OdometryWithCovariance& odom_wc, std::string frame_id, const char* zone, const Eigen::Vector3d& offset);
+template sensor_msgs::msg::NavSatFix Conversions::odomToRos<sensor_msgs::msg::NavSatFix>(Glider::OdometryWithCovariance& odom_wc, std::string frame_id, const char* zone, const Eigen::Vector3d& offset);
 
 template void Conversions::addCovariance<nav_msgs::msg::Odometry>(const Glider::OdometryWithCovariance& odom_wc, nav_msgs::msg::Odometry& msg);
 template void Conversions::addCovariance<sensor_msgs::msg::NavSatFix>(const Glider::OdometryWithCovariance& odom_wc, sensor_msgs::msg::NavSatFix& msg);

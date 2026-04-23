@@ -14,7 +14,9 @@
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <gps_msgs/msg/gps_fix.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include "glider/core/glider.hpp"
 #include "glider/core/odometry.hpp"
@@ -37,12 +39,13 @@ class GliderNode : public rclcpp::Node
         void interpolationCallback();
 
         // subscriber callbacks
-        void dgpsCallback(const gps_msgs::msg::GPSFix::ConstSharedPtr msg);
+        void dgpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
         void gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
         void imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
         void magCallback(const sensor_msgs::msg::MagneticField::ConstSharedPtr msg);
         void odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg);
         void poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
+        void gpsGoalCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
 
         // utility functions
         int64_t getTime(const builtin_interfaces::msg::Time& stamp) const;
@@ -53,12 +56,13 @@ class GliderNode : public rclcpp::Node
         void publishOdometryViz(nav_msgs::msg::Odometry viz_msg) const;
 
         // subscriptions
-        rclcpp::Subscription<gps_msgs::msg::GPSFix>::ConstSharedPtr dgps_sub_;
+        rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::ConstSharedPtr dgps_sub_;
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::ConstSharedPtr gps_sub_;
         rclcpp::Subscription<sensor_msgs::msg::Imu>::ConstSharedPtr imu_sub_;
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::ConstSharedPtr mag_sub_;
         rclcpp::Subscription<nav_msgs::msg::Odometry>::ConstSharedPtr odom_sub_;
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::ConstSharedPtr pose_sub_;
+        rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_goal_sub_;
 
         // groups
         rclcpp::CallbackGroup::SharedPtr imu_group_;
@@ -68,6 +72,9 @@ class GliderNode : public rclcpp::Node
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_viz_pub_;
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gps_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pub_;
+
+        std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
         // timers
         rclcpp::TimerBase::SharedPtr timer_;
@@ -76,12 +83,18 @@ class GliderNode : public rclcpp::Node
         bool initialized_;
         bool publish_nsf_;
         bool viz_;
+        bool use_odom_;
         std::string utm_zone_;
+        std::string map_frame_;
+        std::string odom_frame_;
+        std::string base_link_frame_;
         double origin_easting_;
         double origin_northing_;
         double freq_;
 
         // tracker
         Glider::OdometryWithCovariance current_state_;
+        Eigen::Isometry3d last_odom_pose_;
+        bool has_odom_{false};
 };
 }

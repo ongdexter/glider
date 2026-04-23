@@ -59,12 +59,12 @@ def generate_launch_description():
             ros_params_file,
             {'path': graph_params_file,
              'use_sim_time': use_sim_time,
-             'use_odom': False}
+             'use_odom': True}
         ],
         remappings=[
-            ('/dgps', '/dgps/fix'),
+            ('/dgps', '/dgps/converted'),
             ('/imu', '/vectornav/imu'),
-            ('/odom', '/Odometry'),
+            ('/odom', '/rko_lio/odometry'),
         ]
     )
     

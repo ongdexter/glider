@@ -34,9 +34,20 @@ class Glider
          *  @param gps: gps measurement in (lat, lon, alt) format, 
          *  should be in degree decimal and altitude in meters. Altitude
          *  frame does not matter */
-        void addGps(int64_t timestamp, Eigen::Vector3d& gps);
-        void addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps);
-        void addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading);
+        void addGps(int64_t timestamp, Eigen::Vector3d& gps, const double sigma = 0.0);
+        /*! @brief adds the gps measurement and heading info to the factor 
+         * graph 
+         * @param timestamp: time of measurement 
+         * @param gps: lat, lon, alt coordinates 
+         * @param heading: track, error track 
+         * @param sigma: standard deviation of the gps position measurement */
+        void addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading, const double sigma = 0.0);
+        /*! @brief adds the gps measurement and calculates a heading based on previous 
+         *  GPS measurements
+         * @param timestamp: time of measurement
+         * @param gps: lat, lon, alt coordinates 
+         * @param sigma: standard deviation of the gps position measurement */
+        void addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, const double sigma = 0.0);
         /*! @brief converts the imu measurements into the ENU frame if
          *  they are not in that frame already.
          *  @param timestamp: time the imu measurement was taken
@@ -44,8 +55,19 @@ class Glider
          *  @param gyro: gyroscope measurement in the imu's frame
          *  @param quat: the orientation measurement in the imu's frame */
         void addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& gyro, Eigen::Vector4d& quat);
+        bool addOdom(int64_t timestamp, const Eigen::Isometry3d& pose);
         void addLandmark(int64_t timestamp, size_t lid, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov);
         PointWithCovariance getLandmark(size_t lid);
+        Eigen::Vector3d getGpsOffset() const;
+        /*! @brief gets the auto-detected UTM zone
+         *  @return the UTM zone string */
+        std::string getUtmZone() const { return utm_zone_; }
+
+        const Parameters& params() const { return factor_manager_.params(); }
+        
+        bool isGpsInitialized() const { return factor_manager_.isGpsInitialized(); }
+        bool isGpsOffsetInitialized() const { return factor_manager_.isGpsOffsetInitialized(); }
+        bool isSystemInitialized() const { return factor_manager_.isSystemInitialized(); }
         
 
         /*! @brief calls the factor manager to interpolate between GPS 
@@ -92,5 +114,6 @@ class Glider
         // @brief save the state estimate from 
         // the optimizer
         OdometryWithCovariance current_odom_;
+        std::string utm_zone_;
 };
 }

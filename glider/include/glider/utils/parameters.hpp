@@ -46,6 +46,8 @@ struct Parameters
     // @brief covariance of the GPS position estimate
     // TODO make this gps_cov to match 
     double gps_noise;
+    // @brief covariance of the odometry position estimate
+    double odom_cov;
 
     // @brief gravity as read from your IMU
     double gravity;
@@ -83,6 +85,7 @@ struct Parameters
 
     bool use_dgps;
     double dgps_cov;
+    double dgps_rejection_limit;
 
     // @brief translation from the GPS to the IMU
     Eigen::Vector3d t_imu_gps;

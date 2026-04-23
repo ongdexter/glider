@@ -102,6 +102,10 @@ class Odometry
          *  @return true if odometry is initialized otherwise false */
         bool isInitialized() const;
 
+        /*! @brief check if the gps offset is initialized
+         *  @return true if it is otherwise false */
+        bool isGpsOffsetInitialized() const;
+
         /*! @brief get the latitude of the current position
          *  @param zone: the utm zone ex "18S"
          *  @return the latitude in degrees decimal from the UTM position */
@@ -114,7 +118,7 @@ class Odometry
          *  @param zone: the utm zone, ex "18S"
          *  @return latitude and longitude in degrees decimal as a pair 
          *  where lat is first and lon is second */
-        std::pair<double, double> getLatLon(const char* zone);
+        std::pair<double, double> getLatLon(const char* zone, const Eigen::Vector3d& offset = Eigen::Vector3d::Zero());
         /*! @brief get the timestamp of the odometry
          *  @return nanosec time in integer format */
         int64_t getTimestamp() const;
@@ -123,6 +127,11 @@ class Odometry
          *  @param init: true if you want the odometry to be initialized
          *  otherwise false */
         void setInitializedStatus(bool init);
+
+        /*! @brief set the gps offset initalization status
+         *  @param init: true if you want the gps offset to be initialized
+         *  otherwise false */
+        void setGpsOffsetInitialized(bool init);
 
     protected:
         /*! @brief a helper function to convert gtsam Pose3 to a pair
@@ -157,5 +166,7 @@ class Odometry
         int64_t timestamp_;
         // @brief is this initialized, default to false
         bool initialized_{false};
+        // @brief is the gps offset initialized, default to false
+        bool is_gps_offset_initialized_{false};
 };
 } // namespace glider

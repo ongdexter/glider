@@ -22,6 +22,7 @@ Glider::Parameters::Parameters(const std::string& path)
         integration_cov = config["imu"]["covariances"]["integration"].as<double>();
         bias_cov = config["imu"]["covariances"]["bias"].as<double>();
         gps_noise = config["gps"]["covariance"].as<double>();
+        odom_cov = config["odom"]["covariance"].as<double>();
         
         // constants
         gravity = config["constants"]["gravity"].as<double>();
@@ -42,6 +43,7 @@ Glider::Parameters::Parameters(const std::string& path)
 
         use_dgps = config["dgps"]["enable"].as<bool>();
         dgps_cov = config["dgps"]["covariance"].as<double>();
+        dgps_rejection_limit = config["dgps"]["rejection_limit"].as<double>();
 
         t_imu_gps(0) = config["gps_to_imu"]["x"].as<double>();
         t_imu_gps(1) = config["gps_to_imu"]["y"].as<double>();

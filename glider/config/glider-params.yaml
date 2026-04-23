@@ -9,9 +9,12 @@ imu:
   frame: "enu"
 gps: 
   covariance: 2.0
+odom:
+  covariance: 0.1
 dgps:
   enable: true
   covariance: 0.03
+  rejection_limit: 1.7
 dgpsfm:
   enable: false
   integration_threshold: 1.0

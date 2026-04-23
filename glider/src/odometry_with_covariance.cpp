@@ -24,8 +24,8 @@ OdometryWithCovariance::OdometryWithCovariance(gtsam::Values& vals, int64_t time
     position_covariance_ = pose_cov.block<3,3>(0,0);
 
     is_moving_ = (velocity_.norm() > 0.01) ? true : false;
-
     initialized_ = init;
+    is_gps_offset_initialized_ = false;
 }
 
 OdometryWithCovariance OdometryWithCovariance::Uninitialized()

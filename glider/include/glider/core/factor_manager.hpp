@@ -62,6 +62,9 @@ class FactorManager
          * factor manager
          * @param params: the parameters loaded from the yaml file*/
         FactorManager(const Parameters& params);    
+        /*! @brief initializes all parameters in the factor manager 
+         * @param params: the parameters loaded from the yaml file*/
+        void initialize(const Parameters& params);
         
         // state predictors
         /*! @brief calls the pim predict method
@@ -79,20 +82,26 @@ class FactorManager
         /*! @brief adds the gps measurement and pim to the factor graph
          *  @param timestamp: time of the gps measurement
          *  @param gps: GPS measurement in the UTM frame */
-        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps);
+        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double sigma = 0.0);
         /*! @brief adds the gps measurement and a heading from dgps
          *  @param timestamp: time of the gps measurement 
          *  @param gps: GPS measurement in the UTM frame
          *  @param heading: heading from dgpsfm in the ENU frame 
          *  @param fuse: whether or not to add the heading measurement
-         *  to the factor graph */
-        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double& heading, const bool fuse);
+         *  to the factor graph 
+         *  @param sigma: the standard deviation of the gps measurement, if 0 use param */
+        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double& heading, const bool fuse, const double sigma = 0.0);
         /*! @brief adds the imu measurements to the pim and saves the orientation
          *  @param timestamp: time of the imu measurement 
          *  @param accel: the accelerometer reading
          *  @param gyro: gyroscopre reading
          *  @param orient: orientation in quaternion (w,x,y,z) format */
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
+        /*! @brief adds an odometry measurement 
+         *  @param timestamp: time of the odometry
+         *  @param odom: estimated odometry pose 
+         *  @return true if a graph node was created */
+        bool addOdomFactor(int64_t timestamp, const Eigen::Isometry3d& odom);
         /*! @brief adds a landmark factor for an estimated utm point and covariance 
          *  @param timestamp: time of the landmark measurements
          *  @param landmark_id: a unique id for the landmark
@@ -127,6 +136,16 @@ class FactorManager
         /*! @brief gets the key index 
          *  @return the current key index */
         gtsam::Key getKeyIndex() const;
+        /*! @brief gets the gps offset
+         *  @return the 3D gps offset */
+        Eigen::Vector3d getGpsOffset() const;
+        /*! @brief checks if the gps offset has been initialized
+         *  @return true if the gps offset has been initialized else false */
+        bool isGpsOffsetInitialized() const;
+
+        /*! @brief gets the current parameters
+         *  @return the current parameters */
+        const Parameters& params() const { return params_; }
 
     private: 
         /*! @brief handles the optimization call with the specified 
@@ -151,6 +170,8 @@ class FactorManager
         // @brief a mutex to use accross function that access the pim 
         // as the pim could be accessd by multiple threads
         static std::mutex mutex_;
+        // @brief a mutex to protect the factor graph and its variables
+        mutable std::mutex graph_mutex_;
 
         // parameters
         // @brief parameters for the isam2 optimizer  
@@ -186,6 +207,8 @@ class FactorManager
         gtsam::noiseModel::Base::shared_ptr orient_noise_;
         // @brief noise in the heading estimate of differential gps
         gtsam::noiseModel::Base::shared_ptr dgpsfm_noise_;
+        // @brief noise for the odometry constraints
+        gtsam::noiseModel::Diagonal::shared_ptr odom_noise_;
 
         // factor graph
         // @brief tracks the number of times the optimizer has been called
@@ -222,6 +245,17 @@ class FactorManager
         bool imu_initialized_;
         // @param tracks if a gps measurement has been received
         bool gps_initialized_;
+        // @param tracks if an odom measurement has been received
+        bool odom_initialized_;
+        // @param true if the first graph node originated from Odometry (LIO), making it a local origin
+        bool using_local_origin_;
+        bool gps_offset_initialized_;
+        Eigen::Vector3d gps_offset_;
+        double last_node_time_;
+        // @param previous odometry measurement for relative constraints
+        Eigen::Isometry3d last_odom_meas_;
+        // @param accumulated odometry transform between nodes
+        Eigen::Isometry3d accumulated_odom_delta_;
 
         // landmark variables
         std::unordered_map<size_t, Eigen::Matrix3d> landmark_info_;

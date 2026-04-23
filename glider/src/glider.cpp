@@ -14,7 +14,7 @@ Glider::Glider(const std::string& path)
 {
     Parameters params = Parameters::Load(path);
     initializeLogging(params);
-    factor_manager_ = FactorManager(params);
+    factor_manager_.initialize(params);
     
     frame_ = params.frame;
     t_imu_gps_ = params.t_imu_gps;
@@ -30,6 +30,7 @@ Glider::Glider(const std::string& path)
     dgps_ = Geodetics::DifferentialGpsFromMotion(params.frame, params.dgpsfm_threshold);
 
     current_odom_ = OdometryWithCovariance::Uninitialized();
+    utm_zone_ = "";
 
     LOG(INFO) << "[GLIDER] Using IMU frame: " << frame_;
     LOG(INFO) << "[GLIDER] Using Fixed Lag Smoother: " << std::boolalpha << params.smooth;
@@ -49,7 +50,7 @@ void Glider::initializeLogging(const Parameters& params) const
 }
 
 
-void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
+void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps, const double sigma)
 {
     // route the
     if (use_dgpsfm_)
@@ -64,6 +65,7 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
     double easting, northing;
     char zone[4];
     geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
+    utm_zone_ = std::string(zone);
     
     // keep everything in the enu frame
     meas.head(2) << easting, northing;
@@ -72,10 +74,10 @@ void Glider::addGps(int64_t timestamp, Eigen::Vector3d& gps)
     // TODO t_imu_gps_ needs to be rotated!!
     meas = meas + t_imu_gps_;
 
-    factor_manager_.addGpsFactor(timestamp, meas);
+    factor_manager_.addGpsFactor(timestamp, meas, sigma);
 }
 
-void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading)
+void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::Vector2d& heading, const double sigma)
 {
     // transform from lat lon To UTM
     Eigen::Vector3d meas = Eigen::Vector3d::Zero();
@@ -83,6 +85,7 @@ void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::V
     double easting, northing;
     char zone[4];
     geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
+    utm_zone_ = std::string(zone);
     
     // keep everything in the enu frame
     meas.head(2) << easting, northing;
@@ -90,13 +93,13 @@ void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, Eigen::V
 
     if (factor_manager_.isSystemInitialized())
     {
-        factor_manager_.addGpsFactor(timestamp, meas, heading.x(), true);
+        factor_manager_.addGpsFactor(timestamp, meas, heading.x(), true, sigma);
     } else {
-        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
+        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false, sigma);
     }
 }
 
-void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)
+void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps, const double sigma)
 {
     // transform from lat lon To UTM
     Eigen::Vector3d meas = Eigen::Vector3d::Zero();
@@ -104,6 +107,7 @@ void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)
     double easting, northing;
     char zone[4];
     geodetics::LLtoUTM(gps(0), gps(1), northing, easting, zone);
+    utm_zone_ = std::string(zone);
     
     // keep everything in the enu frame
     meas.head(2) << easting, northing;
@@ -115,12 +119,12 @@ void Glider::addGpsWithHeading(int64_t timestamp, Eigen::Vector3d& gps)
     if(factor_manager_.isSystemInitialized() && current_odom_.isMovingFasterThan(dgps_.getVelocityThreshold()))
     {
         double heading = dgps_.getHeading(gps);
-        factor_manager_.addGpsFactor(timestamp, meas, heading, true);
+        factor_manager_.addGpsFactor(timestamp, meas, heading, true, sigma);
     }
     else
     {
         dgps_.setLastGps(gps);
-        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false);
+        factor_manager_.addGpsFactor(timestamp, meas, 0.0, false, sigma);
     }
 }
 
@@ -144,6 +148,11 @@ void Glider::addImu(int64_t timestamp, Eigen::Vector3d& accel, Eigen::Vector3d& 
     }
 }  
 
+bool Glider::addOdom(int64_t timestamp, const Eigen::Isometry3d& pose)
+{
+    return factor_manager_.addOdomFactor(timestamp, pose);
+}
+
 void Glider::addLandmark(int64_t timestamp, size_t lid, const Eigen::Vector3d& utm, const Eigen::Matrix3d& cov)
 {
     factor_manager_.addLandmarkFactor(timestamp, lid, utm, cov);
@@ -152,6 +161,11 @@ void Glider::addLandmark(int64_t timestamp, size_t lid, const Eigen::Vector3d& u
 PointWithCovariance Glider::getLandmark(size_t lid)
 {
     return factor_manager_.getLandmarkPoint(lid);
+}
+
+Eigen::Vector3d Glider::getGpsOffset() const
+{
+    return factor_manager_.getGpsOffset();
 }
 
 Odometry Glider::interpolate(int64_t timestamp)
