@@ -28,6 +28,7 @@ WORKDIR /home/dtc/ws
 
 # Clone glider
 COPY --chown=dtc:dtc ./glider /home/dtc/ws/src/glider
+COPY --chown=dtc:dtc ./dgps_msgs /home/dtc/ws/src/dgps_msgs
 
 # Build workspace
 RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \

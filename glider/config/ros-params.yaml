@@ -3,14 +3,22 @@ glider_node:
     publishers:
       rate: 0.0
       nav_sat_fix: true
-      utm_zone: "18S"   # Pennovation : 18S, College station : 14R
+      utm_zone: "18S"
       map_frame: "map"
-      odom_frame: "rko_odom"
       base_link_frame: "base_link"
       viz:
         use: true
-        origin_easting: 753912.0063845584   # These needs to be changed based on the location
+        origin_easting: 753912.0063845584
         origin_northing: 3385461.6073698294
     subscribers:
       use_odom: true
-      dgps_topic: "/dgps/antenna1/fix"
+      use_gps: false
+      use_dgps: true
+      imu_topic: "/vectornav/imu"
+      odom_topic: "/rko_lio/odometry"
+      gps_topic: "/ublox/fix"
+      dgps_topic: "/sept/enu/dfix"
+      # Reject fixes when any reported position variance exceeds this value.
+      gps_rejection_variance: 1.0
+      max_stamp_skew_sec: 1.0
+      gps_loss_timeout_sec: 3.0

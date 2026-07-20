@@ -1,11 +1,13 @@
 /*
 * Jason Hughes
-* July 2025 
+* July 2025
 *
 * convert between ros and eigen
 */
 
 #include "ros/conversions.hpp"
+
+#include <cctype>
 
 using namespace GliderROS;
 
@@ -84,7 +86,7 @@ Eigen::Isometry3d Conversions::RosToEigen::poseConvert(const geometry_msgs::msg:
 Eigen::Vector3d Conversions::RosToEigen::vector3Convert(const geometry_msgs::msg::Vector3& msg)
 {
     return Eigen::Vector3d(msg.x, msg.y, msg.z);
-}   
+}
 
 Eigen::Vector4d Conversions::RosToEigen::orientConvert(const geometry_msgs::msg::Quaternion& msg)
 {
@@ -105,7 +107,7 @@ std::pair<Eigen::Vector3d, Eigen::Vector2d> Conversions::RosToEigen::dgpsConvert
 }
 
 Eigen::Isometry3d Conversions::RosToEigen::odomConvert(const nav_msgs::msg::Odometry& msg)
-{ 
+{
     Eigen::Quaterniond quat(msg.pose.pose.orientation.w, msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z);
     Eigen::Vector3d trans(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z);
 
@@ -180,6 +182,15 @@ Output Conversions::odomToRos(Glider::Odometry& odom, std::string frame_id, cons
     if constexpr (std::is_same_v<Output, sensor_msgs::msg::NavSatFix>)
     {
         sensor_msgs::msg::NavSatFix msg;
+        // Backward compatibility: the original two-argument API used its
+        // string argument as the UTM zone and always published in ENU.
+        std::string legacy_zone;
+        if (zone == nullptr && frame_id.size() >= 2 && std::isdigit(frame_id.front()))
+        {
+            legacy_zone = frame_id;
+            zone = legacy_zone.c_str();
+            frame_id = "enu";
+        }
         if (zone == nullptr || std::string(zone) == "")
         {
             throw std::invalid_argument("specify a zone for UTM to GPS converstion");
@@ -188,8 +199,8 @@ Output Conversions::odomToRos(Glider::Odometry& odom, std::string frame_id, cons
         {
             std::pair<double, double> latlon = odom.getLatLon(zone, offset);
 
-            msg.status.status = odom.isInitialized() ? 
-                                sensor_msgs::msg::NavSatStatus::STATUS_FIX : 
+            msg.status.status = odom.isInitialized() ?
+                                sensor_msgs::msg::NavSatStatus::STATUS_FIX :
                                 sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
 
             msg.latitude = latlon.first;
@@ -201,7 +212,7 @@ Output Conversions::odomToRos(Glider::Odometry& odom, std::string frame_id, cons
         return msg;
     }
     else if constexpr (std::is_same_v<Output, nav_msgs::msg::Odometry>)
-    { 
+    {
         nav_msgs::msg::Odometry msg;
 
         Eigen::Vector3d p = odom.getPosition<Eigen::Vector3d>();
@@ -245,8 +256,8 @@ Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, std::stri
         {
             std::pair<double, double> latlon = odom_wc.getLatLon(zone, offset);
 
-            msg.status.status = odom_wc.isGpsOffsetInitialized() ? 
-                                sensor_msgs::msg::NavSatStatus::STATUS_FIX : 
+            msg.status.status = odom_wc.isGpsOffsetInitialized() ?
+                                sensor_msgs::msg::NavSatStatus::STATUS_FIX :
                                 sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
 
             msg.latitude = latlon.first;
@@ -254,9 +265,9 @@ Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, std::stri
             msg.altitude = odom_wc.getAltitude() + offset(2);
             msg.position_covariance_type = 3;
             Eigen::Matrix3d cov = odom_wc.getPositionCovariance();
-            for (int i = 0; i < cov.rows(); ++i) 
+            for (int i = 0; i < cov.rows(); ++i)
             {
-                for (int j = 0; j < cov.cols(); ++j) 
+                for (int j = 0; j < cov.cols(); ++j)
                 {
                     msg.position_covariance[i * 3 + j] = cov(i, j);
                 }
@@ -281,9 +292,9 @@ Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, std::stri
         msg.pose.pose.orientation.z = q.z();
 
         Eigen::MatrixXd cov = odom_wc.getPoseCovariance();
-        for (int i = 0; i < cov.rows(); ++i) 
+        for (int i = 0; i < cov.rows(); ++i)
         {
-            for (int j = 0; j < cov.cols(); ++j) 
+            for (int j = 0; j < cov.cols(); ++j)
             {
                 msg.pose.covariance[i * cov.rows() + j] = cov(i, j);
             }
@@ -294,11 +305,11 @@ Output Conversions::odomToRos(Glider::OdometryWithCovariance& odom_wc, std::stri
         msg.twist.twist.linear.x = v(0);
         msg.twist.twist.linear.y = v(1);
         msg.twist.twist.linear.z = v(2);
-        
+
         cov = odom_wc.getVelocityCovariance();
-        for (int i = 0; i < cov.rows(); ++i) 
+        for (int i = 0; i < cov.rows(); ++i)
         {
-            for (int j = 0; j < cov.cols(); ++j) 
+            for (int j = 0; j < cov.cols(); ++j)
             {
                 msg.twist.covariance[i * cov.rows() + j] = cov(i, j);
             }
@@ -322,7 +333,7 @@ std::chrono::milliseconds Conversions::hzToDuration(double freq)
     }
 
     double period_seconds = 1.0 / freq;
-    
+
     std::chrono::milliseconds period_ms = std::chrono::milliseconds(static_cast<int64_t>(period_seconds * 1e3));
     return period_ms;
 }
@@ -333,28 +344,28 @@ void Conversions::addCovariance(const Glider::OdometryWithCovariance& odom_wc, T
     if constexpr (std::is_same_v<T, sensor_msgs::msg::NavSatFix>)
     {
         Eigen::Matrix3d cov = odom_wc.getPositionCovariance();
-        for (int i = 0; i < cov.rows(); ++i) 
+        for (int i = 0; i < cov.rows(); ++i)
         {
-            for (int j = 0; j < cov.cols(); ++j) 
+            for (int j = 0; j < cov.cols(); ++j)
             {
                 msg.position_covariance[i * 3 + j] = cov(i, j);
             }
         }
     }
     else if constexpr (std::is_same_v<T, nav_msgs::msg::Odometry>)
-    { 
+    {
         Eigen::MatrixXd cov = odom_wc.getPoseCovariance();
-        for (int i = 0; i < cov.rows(); ++i) 
+        for (int i = 0; i < cov.rows(); ++i)
         {
-            for (int j = 0; j < cov.cols(); ++j) 
+            for (int j = 0; j < cov.cols(); ++j)
             {
                 msg.pose.covariance[i * cov.rows() + j] = cov(i, j);
             }
         }
         cov = odom_wc.getVelocityCovariance();
-        for (int i = 0; i < cov.rows(); ++i) 
+        for (int i = 0; i < cov.rows(); ++i)
         {
-            for (int j = 0; j < cov.cols(); ++j) 
+            for (int j = 0; j < cov.cols(); ++j)
             {
                 msg.twist.covariance[i * cov.rows() + j] = cov(i, j);
             }

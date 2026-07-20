@@ -2,7 +2,7 @@
 * Jason Hughes
 * May 2025
 *
-* Struct to keep track of the robots odometry, 
+* Struct to keep track of the robots odometry,
 * not its full state.
 */
 
@@ -20,7 +20,7 @@ Odometry::Odometry(gtsam::Values& vals, int64_t timestamp, gtsam::Key key, bool 
 
     altitude_ = pose_.translation().z();
     heading_ = pose_.rotation().yaw();
-   
+
     timestamp_ = timestamp;
     initialized_ = init;
 }
@@ -69,7 +69,7 @@ int64_t Odometry::getTimestamp() const
 template<typename T>
 T Odometry::getPose() const
 {
-    if constexpr (std::is_same_v<T, gtsam::Pose3>) 
+    if constexpr (std::is_same_v<T, gtsam::Pose3>)
     {
         return pose_;
     }
@@ -133,7 +133,7 @@ T Odometry::getPosition() const
         return p;
     }
     else
-    {      
+    {
         static_assert(std::is_same_v<T, gtsam::Point3> ||
                       std::is_same_v<T, Eigen::Vector3d>, "unsupported type");
     }
@@ -144,7 +144,7 @@ T Odometry::getVelocity() const
 {
     if constexpr (std::is_same_v<T, gtsam::Point3>)
     {
-        return velocity_; 
+        return velocity_;
     }
     else if constexpr (std::is_same_v<T, Eigen::Vector3d>)
     {
@@ -152,7 +152,7 @@ T Odometry::getVelocity() const
         return v;
     }
     else
-    {   
+    {
         static_assert(std::is_same_v<T, gtsam::Point3> ||
                       std::is_same_v<T, Eigen::Vector3d>, "unsupported type");
     }
@@ -226,7 +226,7 @@ double Odometry::getAltitude() const
 double Odometry::getHeadingDegrees() const
 {
     double heading_deg = (heading_ * 180.0) / M_PI;
-    if (heading_deg < 0.0) 
+    if (heading_deg < 0.0)
     {
         heading_deg += 360.0;
     }

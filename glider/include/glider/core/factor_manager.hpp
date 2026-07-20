@@ -2,7 +2,7 @@
  * Jason Hughes
  * April 2025
  *
- * This manages everything with the factor graph. It adds measurements, 
+ * This manages everything with the factor graph. It adds measurements,
  * runs the optimization with the smoother or isam and predicts with the pim
 */
 
@@ -49,7 +49,7 @@ using gtsam::symbol_shorthand::B; // Bias
 using gtsam::symbol_shorthand::V; // Velocity
 using gtsam::symbol_shorthand::X; // Pose
 
-namespace Glider 
+namespace Glider
 {
 
 class FactorManager
@@ -58,19 +58,19 @@ class FactorManager
         // Constructos
         /*! @brief default constructor */
         FactorManager() = default;
-        /*! @brief constructor that initalizes all parameters in the 
+        /*! @brief constructor that initalizes all parameters in the
          * factor manager
          * @param params: the parameters loaded from the yaml file*/
-        FactorManager(const Parameters& params);    
-        /*! @brief initializes all parameters in the factor manager 
+        FactorManager(const Parameters& params);
+        /*! @brief initializes all parameters in the factor manager
          * @param params: the parameters loaded from the yaml file*/
         void initialize(const Parameters& params);
-        
+
         // state predictors
         /*! @brief calls the pim predict method
          *  @param timestamp: the time at which this method is being called
          *  @return the odometry from the pim prediction */
-        Odometry predict(int64_t timestamp); 
+        Odometry predict(int64_t timestamp);
         /*! @brief the runner takes care of everything with the optimization, it calls the
          *  optimizer, and resets everything after optimization is done
          *  @param timestamp: time at which the runner is called
@@ -84,25 +84,28 @@ class FactorManager
          *  @param gps: GPS measurement in the UTM frame */
         void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double sigma = 0.0);
         /*! @brief adds the gps measurement and a heading from dgps
-         *  @param timestamp: time of the gps measurement 
+         *  @param timestamp: time of the gps measurement
          *  @param gps: GPS measurement in the UTM frame
-         *  @param heading: heading from dgpsfm in the ENU frame 
+         *  @param heading: heading from dgpsfm in the ENU frame
          *  @param fuse: whether or not to add the heading measurement
-         *  to the factor graph 
+         *  to the factor graph
          *  @param sigma: the standard deviation of the gps measurement, if 0 use param */
-        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double& heading, const bool fuse, const double sigma = 0.0);
+        void addGpsFactor(int64_t timestamp, const Eigen::Vector3d& gps, const double& heading, const bool fuse,
+                          const double sigma = 0.0, const double heading_sigma = 0.0);
         /*! @brief adds the imu measurements to the pim and saves the orientation
-         *  @param timestamp: time of the imu measurement 
+         *  @param timestamp: time of the imu measurement
          *  @param accel: the accelerometer reading
          *  @param gyro: gyroscopre reading
          *  @param orient: orientation in quaternion (w,x,y,z) format */
         void addImuFactor(int64_t timestamp, const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector4d& orient);
-        /*! @brief adds an odometry measurement 
+        /*! @brief adds an odometry measurement
          *  @param timestamp: time of the odometry
-         *  @param odom: estimated odometry pose 
+         *  @param odom: estimated odometry pose
          *  @return true if a graph node was created */
-        bool addOdomFactor(int64_t timestamp, const Eigen::Isometry3d& odom);
-        /*! @brief adds a landmark factor for an estimated utm point and covariance 
+        bool addOdomFactor(int64_t timestamp, const Eigen::Isometry3d& odom,
+                           const Eigen::Vector3d& velocity = Eigen::Vector3d::Zero(),
+                           double velocity_sigma = 1.0);
+        /*! @brief adds a landmark factor for an estimated utm point and covariance
          *  @param timestamp: time of the landmark measurements
          *  @param landmark_id: a unique id for the landmark
          *  @param utm: the estimated utm coordinate of the landmark
@@ -112,28 +115,28 @@ class FactorManager
 
         // getters and checkers
         /*! @brief gets the estimated landmark utm coordinate and covariance
-         *  @param landmark_id: the uinque id for the landmark 
+         *  @param landmark_id: the uinque id for the landmark
          *  @return the estimated utm point and covariance */
         PointWithCovariance getLandmarkPoint(size_t landmark_id) const;
         /*! @brief gets the complete factor graph */
         gtsam::ExpressionFactorGraph getGraph();
-        /*! @brief checks if the imu has been initialized 
+        /*! @brief checks if the imu has been initialized
          *  @return true if imu bias calibration is complete else false*/
         bool isImuInitialized() const;
         /*! @brief checks if the gps is initialized
          *  @return true if the gps reading has been added to the graph else false */
         bool isGpsInitialized() const;
-        /*! @brief checks if the odometry system is initialized 
+        /*! @brief checks if the odometry system is initialized
          *  @return true if graph has been optimized more than specified
          *  number of times else false */
         bool isSystemInitialized() const;
-        /*! @brief gets the matrix used for bias estimation 
+        /*! @brief gets the matrix used for bias estimation
          *  @return 6-by-bias_num_measurements matrix */
         Eigen::MatrixXd getBiasEstimate() const;
-        /*! @brief gets the current pim object 
+        /*! @brief gets the current pim object
          *  @return the current pim object dereferenced */
         gtsam::PreintegratedCombinedMeasurements getPim() const;
-        /*! @brief gets the key index 
+        /*! @brief gets the key index
          *  @return the current key index */
         gtsam::Key getKeyIndex() const;
         /*! @brief gets the gps offset
@@ -147,36 +150,36 @@ class FactorManager
          *  @return the current parameters */
         const Parameters& params() const { return params_; }
 
-    private: 
-        /*! @brief handles the optimization call with the specified 
-         *  optimizer, either isam or fixed lag smoother 
+    private:
+        /*! @brief handles the optimization call with the specified
+         *  optimizer, either isam or fixed lag smoother
          *  @return the output estimates from the optimization */
         gtsam::Values optimize();
-        
-        /*! @brief initializes all the parameters for the pim 
+
+        /*! @brief initializes all the parameters for the pim
          *  @param g: gravity as defined in the yaml config
          *  @return pim parameters as a shared_ptr */
         boost::shared_ptr<gtsam::PreintegrationCombinedParams> defaultImuParams(double g);
-        
+
         /*! @brief helper function that sets initial values in the graph */
         void initializeGraph();
-        /*! @brief estiamtes the bias using the specified number of measurements 
+        /*! @brief estiamtes the bias using the specified number of measurements
          *  up initialization, and saves the orientation as the initial orientation
-         *  @param accel_meas: accelerometer measurement 
+         *  @param accel_meas: accelerometer measurement
          *  @param gytro_meas: gytroscop measurement
          *  @param orient: the 3D orientation of the robot as a quaternion from the imu*/
         void initializeImu(const Eigen::Vector3d& accel_meas, const Eigen::Vector3d& gyro_meas, const Eigen::Vector4d& orient);
 
-        // @brief a mutex to use accross function that access the pim 
+        // @brief a mutex to use accross function that access the pim
         // as the pim could be accessd by multiple threads
         static std::mutex mutex_;
         // @brief a mutex to protect the factor graph and its variables
         mutable std::mutex graph_mutex_;
 
         // parameters
-        // @brief parameters for the isam2 optimizer  
+        // @brief parameters for the isam2 optimizer
         gtsam::ISAM2Params isam_params_;
-        // @brief parameters for the pim 
+        // @brief parameters for the pim
         boost::shared_ptr<gtsam::PreintegrationCombinedParams> imu_params_;
         // @brief parameters set in the config file
         Parameters params_;
@@ -192,14 +195,14 @@ class FactorManager
         // @brief 6-by-bias_num_measurements matrix to store measurements
         // from accel and gyro to measurem bias
         Eigen::MatrixXd bias_estimate_vec_;
-        
+
         // @brief saves the bias estimate from gtsam optimization
         gtsam::imuBias::ConstantBias bias_;
         // @brief the pim for imu measurements
         std::shared_ptr<gtsam::PreintegratedCombinedMeasurements> pim_;
 
         // noise
-        // @brief noise on the prior estimate 
+        // @brief noise on the prior estimate
         gtsam::noiseModel::Isotropic::shared_ptr prior_noise_;
         // @brief noise on the gps position estimate
         gtsam::noiseModel::Isotropic::shared_ptr gps_noise_;

@@ -14,7 +14,7 @@ if [ "$RUN" = "true" ]; then
     nohup ros2 run foxglove_bridge foxglove_bridge --ros-args -p address:='0.0.0.0' -p port:=8765 > /dev/null 2>&1 &
     sleep 3
     echo "[GLIDER] Launching glider..."
-    ros2 launch glider glider-node.launch.py
+    ros2 launch glider glider-node.launch.py use_sim_time:="${USE_SIM_TIME:-false}"
 else
     echo "[GLIDER] RUN=false, keeping container alive..."
 fi
