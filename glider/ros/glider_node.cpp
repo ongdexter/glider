@@ -22,14 +22,21 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     declare_parameter("publishers.utm_zone", "14R");
     declare_parameter("publishers.map_frame", "map");
     declare_parameter("publishers.base_link_frame", "base_link");
+    declare_parameter("publishers.odom_topic", "glider/odom");
+    declare_parameter("publishers.fix_topic", "glider/fix");
+    declare_parameter("publishers.publish_tf", false);
+    declare_parameter("publishers.global_odom", true);
 
     declare_parameter("subscribers.dgps_topic", "/dgps");
     declare_parameter("subscribers.gps_topic", "/gps");
     declare_parameter("subscribers.imu_topic", "/imu");
     declare_parameter("subscribers.odom_topic", "/odom");
+    declare_parameter("subscribers.compass_topic", "mavros/global_position/compass_hdg");
     declare_parameter("subscribers.use_gps", true);
     declare_parameter("subscribers.use_dgps", true);
     declare_parameter("subscribers.use_odom", false);
+    declare_parameter("subscribers.use_compass", false);
+    declare_parameter("subscribers.compass_heading_sigma", 0.15);
     declare_parameter("subscribers.gps_rejection_variance", 100.0);
     declare_parameter("subscribers.max_stamp_skew_sec", 1.0);
     declare_parameter("subscribers.gps_loss_timeout_sec", 3.0);
@@ -45,10 +52,14 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     origin_northing_ = this->get_parameter("publishers.viz.origin_northing").as_double();
     map_frame_ = this->get_parameter("publishers.map_frame").as_string();
     base_link_frame_ = this->get_parameter("publishers.base_link_frame").as_string();
+    publish_tf_ = this->get_parameter("publishers.publish_tf").as_bool();
+    global_odom_ = this->get_parameter("publishers.global_odom").as_bool();
 
     use_odom_ = this->get_parameter("subscribers.use_odom").as_bool();
     use_gps_ = this->get_parameter("subscribers.use_gps").as_bool();
     use_dgps_ = this->get_parameter("subscribers.use_dgps").as_bool();
+    use_compass_ = this->get_parameter("subscribers.use_compass").as_bool();
+    compass_heading_sigma_ = this->get_parameter("subscribers.compass_heading_sigma").as_double();
     gps_rejection_variance_ = this->get_parameter("subscribers.gps_rejection_variance").as_double();
     max_stamp_skew_sec_ = this->get_parameter("subscribers.max_stamp_skew_sec").as_double();
     gps_loss_timeout_sec_ = this->get_parameter("subscribers.gps_loss_timeout_sec").as_double();
@@ -58,7 +69,8 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     glider_ = std::make_unique<Glider::Glider>(path);
     utm_zone_ = this->get_parameter("publishers.utm_zone").as_string();
 
-    tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    if (publish_tf_)
+        tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     current_state_ = Glider::OdometryWithCovariance::Uninitialized();
 
     imu_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -94,14 +106,22 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
                                                                    std::bind(&GliderNode::odomCallback, this, std::placeholders::_1),
                                                                    odom_sub_options);
 
-    LOG(INFO) << "[GLIDER] Publishing Odometry msg on /glider/odom";
+    auto compass_topic = this->get_parameter("subscribers.compass_topic").as_string();
+    compass_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+        compass_topic, rclcpp::SensorDataQoS(),
+        std::bind(&GliderNode::compassCallback, this, std::placeholders::_1),
+        gps_sub_options);
+
+    auto odom_output_topic = this->get_parameter("publishers.odom_topic").as_string();
+    LOG(INFO) << "[GLIDER] Publishing Odometry msg on " << odom_output_topic;
     LOG(INFO) << "[GLIDER] Using prediction rate: " << freq_;
-    odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/glider/odom", 10);
+    odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(odom_output_topic, 10);
 
     if (publish_nsf_)
     {
-        LOG(INFO) << "[GLIDER] Publishing NavSatFix msg on /glider/fix";
-        gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("/glider/fix", 10);
+        auto fix_output_topic = this->get_parameter("publishers.fix_topic").as_string();
+        LOG(INFO) << "[GLIDER] Publishing NavSatFix msg on " << fix_output_topic;
+        gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(fix_output_topic, 10);
     }
 
     if(viz_)
@@ -309,13 +329,41 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
     markGpsAccepted(timestamp);
 
     const double sigma = std::max(glider_->params().gps_noise, std::sqrt(variance));
-    glider_->addGps(timestamp, gps, sigma);
+    if (use_compass_ && compass_heading_enu_.has_value())
+    {
+        Eigen::Vector2d heading(*compass_heading_enu_, compass_heading_sigma_);
+        glider_->addGpsWithHeading(timestamp, gps, heading, sigma);
+    }
+    else
+    {
+        if (use_compass_)
+        {
+            LOG_FIRST_N(WARNING, 5) << "[GLIDER] Compass unavailable; fusing GPS position only";
+        }
+        glider_->addGps(timestamp, gps, sigma);
+    }
 
     if (!use_odom_)
     {
         current_state_ = glider_->optimize(timestamp);
         if (publish_nsf_ && current_state_.isInitialized()) publishNavSatFix(current_state_);
     }
+}
+
+void GliderNode::compassCallback(const std_msgs::msg::Float64::ConstSharedPtr msg)
+{
+    if (!use_compass_) return;
+    if (!std::isfinite(msg->data))
+    {
+        LOG_FIRST_N(WARNING, 10) << "[GLIDER] Compass ignored: non-finite heading";
+        return;
+    }
+
+    // MAVROS compass_hdg is degrees clockwise from north. Glider expects ROS
+    // ENU yaw in radians, counter-clockwise from east.
+    const double heading_rad = msg->data * M_PI / 180.0;
+    const double heading_enu = M_PI / 2.0 - heading_rad;
+    compass_heading_enu_ = std::atan2(std::sin(heading_enu), std::cos(heading_enu));
 }
 
 void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
@@ -386,38 +434,62 @@ void GliderNode::gpsGoalCallback(const sensor_msgs::msg::NavSatFix::ConstSharedP
 
 void GliderNode::publishOdometry(Glider::OdometryWithCovariance& state) const
 {
+    // A lidar-initialized graph is local until the first accepted GPS fix
+    // establishes gps_offset. Never label that local state as global.
+    if (global_odom_ && !glider_->isGpsOffsetInitialized()) return;
     LOG_FIRST_N(INFO, 1) << "[GLIDER] Publishing Odometry from optimzation";
     nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(state, map_frame_);
+    if (global_odom_)
+    {
+        const Eigen::Vector3d offset = glider_->getGpsOffset();
+        msg.pose.pose.position.x += offset.x();
+        msg.pose.pose.position.y += offset.y();
+        msg.pose.pose.position.z += offset.z();
+    }
     msg.child_frame_id = base_link_frame_;
     odom_pub_->publish(msg);
 
-    geometry_msgs::msg::TransformStamped tf;
-    tf.header = msg.header;
-    tf.child_frame_id = msg.child_frame_id;
-    tf.transform.translation.x = msg.pose.pose.position.x;
-    tf.transform.translation.y = msg.pose.pose.position.y;
-    tf.transform.translation.z = msg.pose.pose.position.z;
-    tf.transform.rotation = msg.pose.pose.orientation;
-    tf_broadcaster_->sendTransform(tf);
+    if (publish_tf_)
+    {
+        geometry_msgs::msg::TransformStamped tf;
+        tf.header = msg.header;
+        tf.child_frame_id = msg.child_frame_id;
+        tf.transform.translation.x = msg.pose.pose.position.x;
+        tf.transform.translation.y = msg.pose.pose.position.y;
+        tf.transform.translation.z = msg.pose.pose.position.z;
+        tf.transform.rotation = msg.pose.pose.orientation;
+        tf_broadcaster_->sendTransform(tf);
+    }
 
     if (viz_) publishOdometryViz(msg);
 }
 
 void GliderNode::publishOdometry(Glider::Odometry& odom) const
 {
+    if (global_odom_ && !glider_->isGpsOffsetInitialized()) return;
     nav_msgs::msg::Odometry msg = GliderROS::Conversions::odomToRos<nav_msgs::msg::Odometry>(odom, map_frame_);
+    if (global_odom_)
+    {
+        const Eigen::Vector3d offset = glider_->getGpsOffset();
+        msg.pose.pose.position.x += offset.x();
+        msg.pose.pose.position.y += offset.y();
+        msg.pose.pose.position.z += offset.z();
+    }
     msg.child_frame_id = base_link_frame_;
     GliderROS::Conversions::addCovariance<nav_msgs::msg::Odometry>(current_state_, msg);
     odom_pub_->publish(msg);
 
-    geometry_msgs::msg::TransformStamped tf;
-    tf.header = msg.header;
-    tf.child_frame_id = msg.child_frame_id;
-    tf.transform.translation.x = msg.pose.pose.position.x;
-    tf.transform.translation.y = msg.pose.pose.position.y;
-    tf.transform.translation.z = msg.pose.pose.position.z;
-    tf.transform.rotation = msg.pose.pose.orientation;
-    tf_broadcaster_->sendTransform(tf);
+    if (publish_tf_)
+    {
+        geometry_msgs::msg::TransformStamped tf;
+        tf.header = msg.header;
+        tf.child_frame_id = msg.child_frame_id;
+        tf.transform.translation.x = msg.pose.pose.position.x;
+        tf.transform.translation.y = msg.pose.pose.position.y;
+        tf.transform.translation.z = msg.pose.pose.position.z;
+        tf.transform.rotation = msg.pose.pose.orientation;
+        tf_broadcaster_->sendTransform(tf);
+    }
 
     if (viz_) publishOdometryViz(msg);
 }

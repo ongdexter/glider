@@ -13,6 +13,7 @@
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <gps_msgs/msg/gps_fix.hpp>
@@ -46,6 +47,7 @@ class GliderNode : public rclcpp::Node
         void imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
         void magCallback(const sensor_msgs::msg::MagneticField::ConstSharedPtr msg);
         void odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg);
+        void compassCallback(const std_msgs::msg::Float64::ConstSharedPtr msg);
         void poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
         void gpsGoalCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
 
@@ -68,6 +70,7 @@ class GliderNode : public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Imu>::ConstSharedPtr imu_sub_;
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::ConstSharedPtr mag_sub_;
         rclcpp::Subscription<nav_msgs::msg::Odometry>::ConstSharedPtr odom_sub_;
+        rclcpp::Subscription<std_msgs::msg::Float64>::ConstSharedPtr compass_sub_;
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::ConstSharedPtr pose_sub_;
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_goal_sub_;
 
@@ -92,6 +95,10 @@ class GliderNode : public rclcpp::Node
         bool use_odom_;
         bool use_gps_;
         bool use_dgps_;
+        bool use_compass_;
+        bool global_odom_;
+        bool publish_tf_;
+        double compass_heading_sigma_;
         double gps_rejection_variance_;
         double max_stamp_skew_sec_;
         double gps_loss_timeout_sec_;
@@ -111,5 +118,6 @@ class GliderNode : public rclcpp::Node
         enum class EnvironmentState { Unknown, Outdoor, Indoor };
         EnvironmentState environment_state_{EnvironmentState::Unknown};
         std::optional<int64_t> last_accepted_gps_time_;
+        std::optional<double> compass_heading_enu_;
 };
 }

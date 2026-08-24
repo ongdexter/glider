@@ -1,0 +1,30 @@
+glider_node:
+  ros__parameters:
+    publishers:
+      rate: 10.0
+      nav_sat_fix: false
+      odom_topic: glider/odom
+      fix_topic: glider/fix
+      map_frame: world
+      base_link_frame: base_link
+      publish_tf: false
+      global_odom: true
+      utm_zone: "18S"
+      viz:
+        use: false
+        origin_easting: 0.0
+        origin_northing: 0.0
+    subscribers:
+      use_odom: false
+      use_gps: true
+      use_dgps: false
+      use_compass: true
+      imu_topic: mavros/imu/data
+      odom_topic: odom
+      gps_topic: mavros/global_position/global
+      compass_topic: mavros/global_position/compass_hdg
+      dgps_topic: dgps
+      compass_heading_sigma: 0.15
+      gps_rejection_variance: 4.0
+      max_stamp_skew_sec: 1.0
+      gps_loss_timeout_sec: 3.0
