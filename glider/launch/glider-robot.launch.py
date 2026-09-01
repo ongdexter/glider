@@ -15,6 +15,7 @@ def generate_launch_description():
     robot_ns = LaunchConfiguration("robot_ns")
     profile = LaunchConfiguration("profile")
     use_sim_time = LaunchConfiguration("use_sim_time")
+    gps_topic = LaunchConfiguration("gps_topic")
 
     ros_params = PathJoinSubstitution(
         [FindPackageShare("glider"), "config", ["ros-params-", profile, ".yaml"]]
@@ -25,6 +26,7 @@ def generate_launch_description():
     graph_params = PathJoinSubstitution(
         [FindPackageShare("glider"), "config", graph_filename]
     )
+    assume_north_aligned = LaunchConfiguration("assume_north_aligned")
 
     return LaunchDescription(
         [
@@ -35,6 +37,16 @@ def generate_launch_description():
                 choices=["uav", "ugv"],
             ),
             DeclareLaunchArgument("use_sim_time", default_value="false"),
+            DeclareLaunchArgument(
+                "assume_north_aligned",
+                default_value="false",
+                description="Use GPS-only north-aligned output (legacy bags only)",
+            ),
+            DeclareLaunchArgument(
+                "gps_topic",
+                default_value="mavros/global_position/global",
+                description="NavSatFix input; use an absolute name for legacy bags",
+            ),
             Node(
                 package="glider",
                 executable="glider_node",
@@ -46,6 +58,10 @@ def generate_launch_description():
                     {
                         "path": graph_params,
                         "use_sim_time": ParameterValue(use_sim_time, value_type=bool),
+                        "subscribers.gps_topic": gps_topic,
+                        "subscribers.assume_north_aligned": ParameterValue(
+                            assume_north_aligned, value_type=bool
+                        ),
                     },
                 ],
             ),

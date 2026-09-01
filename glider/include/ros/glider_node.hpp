@@ -58,6 +58,7 @@ class GliderNode : public rclcpp::Node
         void updateEnvironmentState(int64_t timestamp);
         void markGpsAccepted(int64_t timestamp);
         void markGpsUnavailable();
+        void publishNorthAlignedGps(const sensor_msgs::msg::NavSatFix& fix) const;
         void publishOdometry(Glider::OdometryWithCovariance& state) const;
         void publishOdometry(Glider::Odometry& odom) const;
         void publishNavSatFix(Glider::OdometryWithCovariance& state) const;
@@ -96,6 +97,7 @@ class GliderNode : public rclcpp::Node
         bool use_gps_;
         bool use_dgps_;
         bool use_compass_;
+        bool assume_north_aligned_;
         bool global_odom_;
         bool publish_tf_;
         double compass_heading_sigma_;

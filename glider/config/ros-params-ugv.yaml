@@ -1,4 +1,4 @@
-glider_node:
+/**/glider_node:
   ros__parameters:
     publishers:
       rate: 10.0
@@ -19,7 +19,8 @@ glider_node:
       use_gps: true
       use_dgps: false
       use_compass: true
-      imu_topic: /vectornav/imu
+      assume_north_aligned: false
+      imu_topic: mavros/imu/data
       odom_topic: rko_lio/odometry
       gps_topic: mavros/global_position/global
       compass_topic: mavros/global_position/compass_hdg

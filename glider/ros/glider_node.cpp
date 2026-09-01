@@ -36,6 +36,7 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     declare_parameter("subscribers.use_dgps", true);
     declare_parameter("subscribers.use_odom", false);
     declare_parameter("subscribers.use_compass", false);
+    declare_parameter("subscribers.assume_north_aligned", false);
     declare_parameter("subscribers.compass_heading_sigma", 0.15);
     declare_parameter("subscribers.gps_rejection_variance", 100.0);
     declare_parameter("subscribers.max_stamp_skew_sec", 1.0);
@@ -59,6 +60,7 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     use_gps_ = this->get_parameter("subscribers.use_gps").as_bool();
     use_dgps_ = this->get_parameter("subscribers.use_dgps").as_bool();
     use_compass_ = this->get_parameter("subscribers.use_compass").as_bool();
+    assume_north_aligned_ = this->get_parameter("subscribers.assume_north_aligned").as_bool();
     compass_heading_sigma_ = this->get_parameter("subscribers.compass_heading_sigma").as_double();
     gps_rejection_variance_ = this->get_parameter("subscribers.gps_rejection_variance").as_double();
     max_stamp_skew_sec_ = this->get_parameter("subscribers.max_stamp_skew_sec").as_double();
@@ -76,14 +78,8 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
     imu_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     gps_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 
-    // Create subscribers with callback groups
-    auto imu_sub_options = rclcpp::SubscriptionOptions();
-    imu_sub_options.callback_group = imu_group_;
-    auto imu_topic = this->get_parameter("subscribers.imu_topic").as_string();
-    imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_topic, rclcpp::SensorDataQoS(),
-                                                                std::bind(&GliderNode::imuCallback, this, std::placeholders::_1),
-                                                                imu_sub_options);
-
+    // GPS-only north-aligned mode deliberately creates no IMU, odometry,
+    // compass, or differential-GPS subscriptions.
     auto gps_sub_options = rclcpp::SubscriptionOptions();
     gps_sub_options.callback_group = gps_group_;
     auto gps_topic = this->get_parameter("subscribers.gps_topic").as_string();
@@ -91,31 +87,49 @@ GliderNode::GliderNode(const rclcpp::NodeOptions& options) : rclcpp::Node("glide
                                                                       std::bind(&GliderNode::gpsCallback, this, std::placeholders::_1),
                                                                       gps_sub_options);
 
-    auto dgps_topic = this->get_parameter("subscribers.dgps_topic").as_string();
-    dgps_sub_ = this->create_subscription<dgps_msgs::msg::DifferentialNavSatFix>(dgps_topic, rclcpp::SensorDataQoS(),
-                                                                 std::bind(&GliderNode::dgpsCallback, this, std::placeholders::_1),
-                                                                 gps_sub_options);
+    if (!assume_north_aligned_)
+    {
+        auto imu_sub_options = rclcpp::SubscriptionOptions();
+        imu_sub_options.callback_group = imu_group_;
+        auto imu_topic = this->get_parameter("subscribers.imu_topic").as_string();
+        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
+            imu_topic, rclcpp::SensorDataQoS(),
+            std::bind(&GliderNode::imuCallback, this, std::placeholders::_1),
+            imu_sub_options);
 
-    gps_goal_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("/glider/gps_goal", 1,
-                                                                               std::bind(&GliderNode::gpsGoalCallback, this, std::placeholders::_1));
+        auto dgps_topic = this->get_parameter("subscribers.dgps_topic").as_string();
+        dgps_sub_ = this->create_subscription<dgps_msgs::msg::DifferentialNavSatFix>(
+            dgps_topic, rclcpp::SensorDataQoS(),
+            std::bind(&GliderNode::dgpsCallback, this, std::placeholders::_1),
+            gps_sub_options);
 
-    auto odom_sub_options = rclcpp::SubscriptionOptions();
-    odom_sub_options.callback_group = gps_group_;
-    auto odom_topic = this->get_parameter("subscribers.odom_topic").as_string();
-    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(odom_topic, rclcpp::SensorDataQoS(),
-                                                                   std::bind(&GliderNode::odomCallback, this, std::placeholders::_1),
-                                                                   odom_sub_options);
+        gps_goal_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
+            "/glider/gps_goal", 1,
+            std::bind(&GliderNode::gpsGoalCallback, this, std::placeholders::_1));
 
-    auto compass_topic = this->get_parameter("subscribers.compass_topic").as_string();
-    compass_sub_ = this->create_subscription<std_msgs::msg::Float64>(
-        compass_topic, rclcpp::SensorDataQoS(),
-        std::bind(&GliderNode::compassCallback, this, std::placeholders::_1),
-        gps_sub_options);
+        auto odom_sub_options = rclcpp::SubscriptionOptions();
+        odom_sub_options.callback_group = gps_group_;
+        auto odom_topic = this->get_parameter("subscribers.odom_topic").as_string();
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            odom_topic, rclcpp::SensorDataQoS(),
+            std::bind(&GliderNode::odomCallback, this, std::placeholders::_1),
+            odom_sub_options);
+
+        auto compass_topic = this->get_parameter("subscribers.compass_topic").as_string();
+        compass_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+            compass_topic, rclcpp::SensorDataQoS(),
+            std::bind(&GliderNode::compassCallback, this, std::placeholders::_1),
+            gps_sub_options);
+    }
 
     auto odom_output_topic = this->get_parameter("publishers.odom_topic").as_string();
     LOG(INFO) << "[GLIDER] Publishing Odometry msg on " << odom_output_topic;
     LOG(INFO) << "[GLIDER] Using prediction rate: " << freq_;
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(odom_output_topic, 10);
+    if (assume_north_aligned_)
+    {
+        LOG(INFO) << "[GLIDER] GPS-only north-aligned mode enabled; factor graph inputs disabled";
+    }
 
     if (publish_nsf_)
     {
@@ -216,6 +230,7 @@ void GliderNode::interpolationCallback()
 
 void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 {
+    if (assume_north_aligned_) return;
     LOG_FIRST_N(INFO, 1) << "[GLIDER] Recieved IMU measurement";
     Eigen::Vector3d gyro = GliderROS::Conversions::rosToEigen<Eigen::Vector3d>(msg->angular_velocity);
     Eigen::Vector3d accel = GliderROS::Conversions::rosToEigen<Eigen::Vector3d>(msg->linear_acceleration);
@@ -240,6 +255,7 @@ void GliderNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr msg)
 
 void GliderNode::dgpsCallback(const dgps_msgs::msg::DifferentialNavSatFix::ConstSharedPtr msg)
 {
+    if (assume_north_aligned_) return;
     if (!use_dgps_) return;
     const auto& fix = msg->nmea;
     const double variance = std::max({fix.position_covariance[0], fix.position_covariance[4],
@@ -301,7 +317,8 @@ void GliderNode::dgpsCallback(const dgps_msgs::msg::DifferentialNavSatFix::Const
 void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
 {
     if (!use_gps_) return;
-    if (msg->status.status < sensor_msgs::msg::NavSatStatus::STATUS_FIX || msg->position_covariance[0] < 1e-6)
+    if (msg->status.status < sensor_msgs::msg::NavSatStatus::STATUS_FIX ||
+        (!assume_north_aligned_ && msg->position_covariance[0] < 1e-6))
     {
         markGpsUnavailable();
         LOG_FIRST_N(WARNING, 5) << "[GLIDER] GPS ignored: No fix or invalid covariance";
@@ -328,6 +345,12 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
     int64_t timestamp = getSynchronizedTime(msg->header.stamp, "GPS", gps_clock_offset_);
     markGpsAccepted(timestamp);
 
+    if (assume_north_aligned_)
+    {
+        publishNorthAlignedGps(*msg);
+        return;
+    }
+
     const double sigma = std::max(glider_->params().gps_noise, std::sqrt(variance));
     if (use_compass_ && compass_heading_enu_.has_value())
     {
@@ -350,6 +373,41 @@ void GliderNode::gpsCallback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr m
     }
 }
 
+void GliderNode::publishNorthAlignedGps(const sensor_msgs::msg::NavSatFix& fix) const
+{
+    double easting = 0.0;
+    double northing = 0.0;
+    char zone[10] = {};
+    Glider::geodetics::LLtoUTM(
+        fix.latitude, fix.longitude, northing, easting, zone);
+
+    nav_msgs::msg::Odometry odom;
+    odom.header = fix.header;
+    odom.header.frame_id = map_frame_;
+    odom.child_frame_id = base_link_frame_;
+    odom.pose.pose.position.x = easting;
+    odom.pose.pose.position.y = northing;
+    odom.pose.pose.position.z = fix.altitude;
+
+    // A north-facing FLU body has +X along ENU +Y: yaw = +90 degrees.
+    odom.pose.pose.orientation.z = std::sin(M_PI / 4.0);
+    odom.pose.pose.orientation.w = std::cos(M_PI / 4.0);
+
+    // Copy the NavSat position covariance into the 6x6 odometry covariance.
+    for (size_t row = 0; row < 3; ++row)
+    {
+        for (size_t col = 0; col < 3; ++col)
+        {
+            odom.pose.covariance[row * 6 + col] =
+                fix.position_covariance[row * 3 + col];
+        }
+    }
+    // Heading is an explicit assumption, not a measured quantity.
+    odom.pose.covariance[35] = M_PI * M_PI;
+
+    odom_pub_->publish(odom);
+}
+
 void GliderNode::compassCallback(const std_msgs::msg::Float64::ConstSharedPtr msg)
 {
     if (!use_compass_) return;
@@ -368,6 +426,7 @@ void GliderNode::compassCallback(const std_msgs::msg::Float64::ConstSharedPtr ms
 
 void GliderNode::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg)
 {
+    if (assume_north_aligned_) return;
     if (!use_odom_) return;
     Eigen::Isometry3d pose = GliderROS::Conversions::rosToEigen<Eigen::Isometry3d>(*msg);
     if (!pose.matrix().allFinite())
